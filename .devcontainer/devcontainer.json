@@ -1,0 +1,7 @@
+{
+  "name": "Node.js & TypeScript (Ubuntu 24.04, Node 25, Java 25)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode"
+}
