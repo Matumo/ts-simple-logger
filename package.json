@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "vitest run --coverage",
     "prepare": "npm run build"
   },
   "devDependencies": {
