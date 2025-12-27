@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "develop", "*" ]
+  pull_request:
+    branches: [ "main", "develop", "*" ]
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+jobs:
+  ALL:
+    runs-on: ubuntu-latest
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+      # Linter
+      - name: Run ESLint
+        run: npm run lint
+      # Build
+      - name: Build
+        run: npm run build
+      # Unit Tests
+      - name: Run tests with coverage
+        run: npm run test:unit:coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage
+          path: ./coverage
