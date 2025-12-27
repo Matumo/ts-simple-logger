@@ -1,9 +1,9 @@
 // 方針:
 // - setDefaultConfig / setLoggerConfig で設定する。
 //  - prefixFormat のプレースホルダ
-//    - %appName: アプリ名
 //    - %loggerName: ロガー名
 //    - %logLevel: ログレベル
+//    - 任意のプレースホルダー（例: %appName）を placeholders 経由で指定
 //    - %%: %
 // - getLogger でロガーを取得する。
 
@@ -18,19 +18,16 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
   silent: 100,
 };
 
-export type DefaultLoggerConfig = {
-  appName: string;
+type LoggerConfigFields = {
   level: LogLevel;
   prefixEnabled: boolean;
   prefixFormat: string;
+  placeholders: Record<string, string>;
 };
 
-export type PerLoggerConfig = Partial<{
-  appName: string;
-  level: LogLevel;
-  prefixEnabled: boolean;
-  prefixFormat: string;
-}>;
+export type DefaultLoggerConfig = LoggerConfigFields;
+
+export type PerLoggerConfig = Partial<LoggerConfigFields>;
 
 export type Logger = {
   readonly name: string;
@@ -71,10 +68,10 @@ function getConsoleMethod(
 
 function createLibraryDefaults(): DefaultLoggerConfig {
   return {
-    appName: "app",
     level: "info",
     prefixEnabled: true,
-    prefixFormat: "[%appName][%loggerName] %logLevel:",
+    prefixFormat: "(%loggerName) %logLevel:",
+    placeholders: { },
   };
 }
 
@@ -83,7 +80,7 @@ function getState(): State {
     const libraryDefaults = createLibraryDefaults();
     globalThis.__MYLOGGER_STATE__ = {
       libraryDefaults,
-      defaults: { ...libraryDefaults },
+      defaults: { ...libraryDefaults, placeholders: { ...libraryDefaults.placeholders } },
       perLogger: {},
       loggers: new Map(),
     };
@@ -91,25 +88,30 @@ function getState(): State {
   return globalThis.__MYLOGGER_STATE__;
 }
 
-function formatPrefix(template: string, appName: string, loggerName: string, level: LogLevel): string {
+function formatPrefix(
+  template: string,
+  loggerName: string,
+  level: LogLevel,
+  placeholders: Record<string, string>,
+): string {
   const lvl = level.toUpperCase();
   const replacements: Record<string, string> = {
-    "%appName": appName,
+    ...placeholders,
     "%loggerName": loggerName,
     "%logLevel": lvl,
   };
 
-  return template.replaceAll(/%%|%appName|%loggerName|%logLevel/g, (token) => {
+  return template.replaceAll(/%%|%[0-9A-Za-z_]+/g, (token) => {
     if (token === "%%") return "%";
     return replacements[token] ?? token;
   });
 }
 
 type EffectiveConfig = {
-  appName: string;
   level: LogLevel;
   prefixEnabled: boolean;
   prefixFormat: string;
+  placeholders: Record<string, string>;
 };
 
 function resolveEffectiveConfig(loggerName: string): EffectiveConfig {
@@ -118,10 +120,10 @@ function resolveEffectiveConfig(loggerName: string): EffectiveConfig {
   const p = state.perLogger[loggerName] ?? {};
 
   return {
-    appName: p.appName ?? d.appName,
     level: p.level ?? d.level,
     prefixEnabled: p.prefixEnabled ?? d.prefixEnabled,
     prefixFormat: p.prefixFormat ?? d.prefixFormat,
+    placeholders: { ...d.placeholders, ...(p.placeholders ?? {}) },
   };
 }
 
@@ -137,21 +139,21 @@ function applyConfigToLogger(logger: Logger): void {
   const cWarn = getConsoleMethod("warn");
   const cError = getConsoleMethod("error");
 
-  const prefixTrace = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, cfg.appName, name, "trace") : "";
-  const prefixDebug = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, cfg.appName, name, "debug") : "";
-  const prefixInfo = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, cfg.appName, name, "info") : "";
-  const prefixWarn = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, cfg.appName, name, "warn") : "";
-  const prefixError = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, cfg.appName, name, "error") : "";
+  const prefixTrace = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "trace", cfg.placeholders) : "";
+  const prefixDebug = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "debug", cfg.placeholders) : "";
+  const prefixInfo = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "info", cfg.placeholders) : "";
+  const prefixWarn = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "warn", cfg.placeholders) : "";
+  const prefixError = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "error", cfg.placeholders) : "";
 
-  const bindWithPrefix = (fn: (...a: unknown[]) => void, prefix: string, label: string) => {
-    return prefix ? fn.bind(null, prefix) : fn.bind(null, label);
+  const bindWithPrefix = (fn: (...a: unknown[]) => void, prefix: string) => {
+    return prefix ? fn.bind(null, prefix) : fn;
   };
 
-  logger.trace = enabled("trace") ? bindWithPrefix(cTrace, prefixTrace, "TRACE:") : noop;
-  logger.debug = enabled("debug") ? bindWithPrefix(cDebug, prefixDebug, "DEBUG:") : noop;
-  logger.info = enabled("info") ? bindWithPrefix(cInfo, prefixInfo, "INFO:") : noop;
-  logger.warn = enabled("warn") ? bindWithPrefix(cWarn, prefixWarn, "WARN:") : noop;
-  logger.error = enabled("error") ? bindWithPrefix(cError, prefixError, "ERROR:") : noop;
+  logger.trace = enabled("trace") ? bindWithPrefix(cTrace, prefixTrace) : noop;
+  logger.debug = enabled("debug") ? bindWithPrefix(cDebug, prefixDebug) : noop;
+  logger.info = enabled("info") ? bindWithPrefix(cInfo, prefixInfo) : noop;
+  logger.warn = enabled("warn") ? bindWithPrefix(cWarn, prefixWarn) : noop;
+  logger.error = enabled("error") ? bindWithPrefix(cError, prefixError) : noop;
 }
 
 function reapplyAllLoggers(): void {
@@ -167,10 +169,12 @@ function reapplyAllLoggers(): void {
 export function setDefaultConfig(partial: Partial<DefaultLoggerConfig>): void {
   const state = getState();
 
-  if (typeof partial.appName === "string") state.defaults.appName = partial.appName;
   if (typeof partial.level === "string") state.defaults.level = partial.level;
   if (typeof partial.prefixEnabled === "boolean") state.defaults.prefixEnabled = partial.prefixEnabled;
   if (typeof partial.prefixFormat === "string") state.defaults.prefixFormat = partial.prefixFormat;
+  if (partial.placeholders && typeof partial.placeholders === "object") {
+    state.defaults.placeholders = { ...partial.placeholders };
+  }
 
   reapplyAllLoggers();
 }
