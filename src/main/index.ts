@@ -46,7 +46,6 @@ type State = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __MYLOGGER_STATE__: State | undefined;
 }
 
@@ -55,7 +54,7 @@ function noop(): void {}
 function getConsoleMethod(
   method: "trace" | "debug" | "info" | "warn" | "error",
 ): (...args: unknown[]) => void {
-  const c: any = console;
+  const c: Partial<Console> | undefined = globalThis.console;
 
   const fn = c?.[method];
   if (typeof fn === "function") return fn.bind(console);

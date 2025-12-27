@@ -170,7 +170,6 @@ describe("ログ出力の挙動", () => {
 
   it("特定の console メソッド未定義時は console.log にフォールバックする", () => {
     const logSpy = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error override console for test
     console.trace = undefined;
     console.log = logSpy;
