@@ -1,6 +1,11 @@
 name: Project setup
 description: Set up Node, and cache the npm directory.
 
+inputs:
+  runs-on:
+    description: Optional runner label to use for cache key (falls back to runner.os)
+    required: false
+
 runs:
   using: composite
   steps:
@@ -33,9 +38,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.npm_cache.outputs.dir }}
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ inputs.runs-on || runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-
+          ${{ inputs.runs-on || runner.os }}-node-
     - name: Install dependencies
       shell: bash
       run: npm ci
