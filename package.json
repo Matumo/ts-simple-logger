@@ -21,7 +21,7 @@
   },
   "sideEffects": false,
   "engines": {
-    "node": ">=20 <26"
+    "node": ">=24 <26"
   },
   "scripts": {
     "lint:fix": "eslint ./src --max-warnings=0 --fix",
