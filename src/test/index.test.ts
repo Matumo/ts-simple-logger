@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import type { LogLevel } from "../main/index";
 import {
   getDefaultConfig,
@@ -92,6 +93,11 @@ describe("ログ出力の挙動", () => {
       silent: 100,
     };
 
+    const expectCall = (spy: MockInstance, shouldCall: boolean, ...args: unknown[]): void => {
+      if (shouldCall) expect(spy).toHaveBeenCalledWith(...args);
+      else expect(spy).not.toHaveBeenCalled();
+    };
+
     const levels: LogLevel[] = ["trace", "debug", "info", "warn", "error", "silent"];
 
     for (const baseLevel of levels) {
@@ -110,16 +116,11 @@ describe("ログ出力の挙動", () => {
       logger.error("e");
 
       const should = (need: LogLevel) => LEVEL_ORDER[baseLevel] <= LEVEL_ORDER[need];
-      if (should("trace")) expect(traceSpy).toHaveBeenCalledWith(`(LogLevel-${baseLevel}) TRACE:`, "t");
-      else expect(traceSpy).not.toHaveBeenCalled();
-      if (should("debug")) expect(debugSpy).toHaveBeenCalledWith(`(LogLevel-${baseLevel}) DEBUG:`, "d");
-      else expect(debugSpy).not.toHaveBeenCalled();
-      if (should("info")) expect(infoSpy).toHaveBeenCalledWith(`(LogLevel-${baseLevel}) INFO:`, "i");
-      else expect(infoSpy).not.toHaveBeenCalled();
-      if (should("warn")) expect(warnSpy).toHaveBeenCalledWith(`(LogLevel-${baseLevel}) WARN:`, "w");
-      else expect(warnSpy).not.toHaveBeenCalled();
-      if (should("error")) expect(errorSpy).toHaveBeenCalledWith(`(LogLevel-${baseLevel}) ERROR:`, "e");
-      else expect(errorSpy).not.toHaveBeenCalled();
+      expectCall(traceSpy, should("trace"), `(LogLevel-${baseLevel}) TRACE:`, "t");
+      expectCall(debugSpy, should("debug"), `(LogLevel-${baseLevel}) DEBUG:`, "d");
+      expectCall(infoSpy, should("info"), `(LogLevel-${baseLevel}) INFO:`, "i");
+      expectCall(warnSpy, should("warn"), `(LogLevel-${baseLevel}) WARN:`, "w");
+      expectCall(errorSpy, should("error"), `(LogLevel-${baseLevel}) ERROR:`, "e");
 
       traceSpy.mockRestore();
       debugSpy.mockRestore();

@@ -1,6 +1,6 @@
 {
   "name": "ts-simple-logger",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Simple console logger for browsers and Node.",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,7 +21,7 @@
   },
   "sideEffects": false,
   "engines": {
-    "node": "25.x"
+    "node": ">=24 <26"
   },
   "scripts": {
     "lint:fix": "eslint ./src --max-warnings=0 --fix",
