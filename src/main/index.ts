@@ -25,8 +25,6 @@ type LoggerConfigFields = {
   placeholders: Record<string, string>;
 };
 
-export type DefaultLoggerConfig = LoggerConfigFields;
-
 export type PerLoggerConfig = Partial<LoggerConfigFields>;
 
 export type Logger = {
@@ -39,8 +37,8 @@ export type Logger = {
 };
 
 type State = {
-  libraryDefaults: DefaultLoggerConfig;
-  defaults: DefaultLoggerConfig;
+  libraryDefaults: LoggerConfigFields;
+  defaults: LoggerConfigFields;
   perLogger: Record<string, PerLoggerConfig>;
   loggers: Map<string, Logger>;
 };
@@ -65,7 +63,7 @@ function getConsoleMethod(
   return noop;
 }
 
-function createLibraryDefaults(): DefaultLoggerConfig {
+function createLibraryDefaults(): LoggerConfigFields {
   return {
     level: "info",
     prefixEnabled: true,
@@ -165,7 +163,7 @@ function reapplyAllLoggers(): void {
 /**
  * デフォルト設定関数
  */
-export function setDefaultConfig(partial: Partial<DefaultLoggerConfig>): void {
+export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
   const state = getState();
 
   if (typeof partial.level === "string") state.defaults.level = partial.level;
@@ -235,12 +233,12 @@ export function getLogger(name: string): Logger {
 /**
  * 参照用関数
  */
-export function getDefaultConfig(): Readonly<DefaultLoggerConfig> {
+export function getDefaultConfig(): Readonly<LoggerConfigFields> {
   return getState().defaults;
 }
 export function getPerLoggerConfig(): Readonly<Record<string, PerLoggerConfig>> {
   return getState().perLogger;
 }
-export function getLibraryDefaults(): Readonly<DefaultLoggerConfig> {
+export function getLibraryDefaults(): Readonly<LoggerConfigFields> {
   return getState().libraryDefaults;
 }
