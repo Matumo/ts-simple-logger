@@ -5,24 +5,17 @@ inputs:
   runs-on:
     description: Optional runner label to use for cache key (falls back to runner.os)
     required: false
+  node-version:
+    description: Node version to use (required)
+    required: true
 
 runs:
   using: composite
   steps:
-    - id: node_version
-      shell: bash
-      run: |
-        version=$(jq -r '.engines.node // empty' package.json)
-        echo "Resolved Node version: $version"
-        if [ -z "$version" ]; then
-          echo "Node version not set in package.json"
-          exit 1
-        fi
-        echo "node_version=$version" >> "$GITHUB_OUTPUT"
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ steps.node_version.outputs.node_version }}
+        node-version: ${{ inputs.node-version }}
     - name: Determine npm cache directory
       id: npm_cache
       shell: bash
@@ -38,9 +31,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.npm_cache.outputs.dir }}
-        key: ${{ inputs.runs-on || runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
-          ${{ inputs.runs-on || runner.os }}-node-
+          ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
     - name: Install dependencies
       shell: bash
       run: npm ci

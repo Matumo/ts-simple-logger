@@ -13,10 +13,54 @@ on:
   workflow_dispatch:
 
 jobs:
-  ALL:
+  env:
+    runs-on: ubuntu-latest
+    outputs:
+      default_os: ${{ steps.set.outputs.default_os }}
+      default_node: ${{ steps.set.outputs.default_node }}
+      matrix_os: ${{ steps.set.outputs.matrix_os }}
+      matrix_node: ${{ steps.set.outputs.matrix_node }}
+    steps:
+      - id: set
+        run: |
+          echo "default_os=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+          echo "default_node=25.x" >> "$GITHUB_OUTPUT"
+          echo 'matrix_os=["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]' >> "$GITHUB_OUTPUT"
+          echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"
+  build:
+    needs: env
+    runs-on: ${{ needs.env.outputs.default_os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ needs.env.outputs.default_os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      # Build
+      - name: Build
+        run: npm run build
+  linter:
+    needs: env
+    runs-on: ${{ needs.env.outputs.default_os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ needs.env.outputs.default_os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      # Linter
+      - name: Run ESLint
+        run: npm run lint
+  unit-test:
+    needs: env
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, windows-2025, windows-11-arm, macos-15-intel, macos-26]
+        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
+        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
     runs-on: ${{ matrix.os }}
     steps:
       # Setup
@@ -25,17 +69,12 @@ jobs:
         uses: ./.github/actions/project-setup
         with:
           runs-on: ${{ matrix.os }}
-      # Linter
-      - name: Run ESLint
-        run: npm run lint
-      # Build
-      - name: Build
-        run: npm run build
+          node-version: ${{ matrix.node }}
       # Unit Tests
       - name: Run tests with coverage
         run: npm run test:unit:coverage
       - name: Upload coverage
         uses: actions/upload-artifact@v6
         with:
-          name: coverage-${{ matrix.os }}
+          name: coverage-${{ matrix.os }}-node-${{ matrix.node }}
           path: ./coverage
