@@ -98,7 +98,7 @@ function formatPrefix(
     "%logLevel": lvl,
   };
 
-  return template.replaceAll(/%%|%[0-9A-Za-z_]+/g, (token) => {
+  return template.replaceAll(/%%|%\w+/g, (token) => {
     if (token === "%%") return "%";
     return replacements[token] ?? token;
   });
