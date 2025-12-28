@@ -120,7 +120,7 @@ function resolveEffectiveConfig(loggerName: string): EffectiveConfig {
     level: p.level ?? d.level,
     prefixEnabled: p.prefixEnabled ?? d.prefixEnabled,
     prefixFormat: p.prefixFormat ?? d.prefixFormat,
-    placeholders: { ...d.placeholders, ...(p.placeholders ?? {}) },
+    placeholders: { ...d.placeholders, ...p.placeholders },
   };
 }
 
