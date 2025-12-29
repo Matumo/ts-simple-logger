@@ -2,11 +2,6 @@ name: Clear GitHub Actions cache
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: "Branch to target (leave blank to clear all)"
-        required: false
-        default: ""
 
 permissions:
   actions: write
@@ -16,16 +11,10 @@ jobs:
   clear-cache:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete caches via gh CLI
+      - uses: actions/checkout@v4
+      - name: Delete caches
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_BRANCH: ${{ inputs.branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          if [ -n "$TARGET_BRANCH" ]; then
-            echo "Deleting caches for branch: $TARGET_BRANCH"
-            gh actions-cache delete --all --branch "$TARGET_BRANCH" --confirm
-          else
-            echo "Deleting all caches (all branches)"
-            gh actions-cache delete --all --confirm
-          fi
+          gh cache delete --all --succeed-on-no-caches
