@@ -3,13 +3,17 @@
     "target": "es2021",
     "module": "esnext",
     "outDir": "./dist",
-    "rootDir": "./src/main",
     "declaration": true,
     "lib": ["es2021", "dom"],
-    "types": ["chrome"],
+    "types": ["chrome", "node"],
     "strict": true,
     "skipLibCheck": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@main/*": ["src/main/*"],
+      "@test/*": ["src/test/*"]
+    }
   },
   "include": [
     "./src/main/**/*.ts"

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
-import type { LogLevel } from "../main/index";
+import type { LogLevel } from "@main/index";
 import {
   getDefaultConfig,
   getLibraryDefaults,
@@ -10,7 +10,7 @@ import {
   setLogLevel,
   setLoggerConfig,
   setLoggerLevel,
-} from "../main/index";
+} from "@main/index";
 
 const originalConsole = globalThis.console;
 
