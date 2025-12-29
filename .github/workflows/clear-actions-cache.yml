@@ -18,14 +18,14 @@ jobs:
     steps:
       - name: Delete caches via gh CLI
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TARGET_BRANCH: ${{ inputs.branch }}
         run: |
           set -eu
           if [ -n "$TARGET_BRANCH" ]; then
             echo "Deleting caches for branch: $TARGET_BRANCH"
-            gh actions-cache delete --all --branch "$TARGET_BRANCH" --confirm
+            gh cache delete --all --ref "refs/heads/$TARGET_BRANCH" --succeed-on-no-caches
           else
-            echo "Deleting all caches (all branches)"
-            gh actions-cache delete --all --confirm
+            echo "Deleting all caches (all refs)"
+            gh cache delete --all --succeed-on-no-caches
           fi
