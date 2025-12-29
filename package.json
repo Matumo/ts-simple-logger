@@ -26,7 +26,12 @@
   "scripts": {
     "lint:fix": "eslint ./src --max-warnings=0 --fix",
     "lint": "eslint ./src --max-warnings=0",
-    "build": "tsc -p tsconfig.json",
+    "build:clean": "rm -rf dist/",
+    "build:check": "tsc --noEmit -p ./tsconfig.json && tsc --noEmit -p ./src/test/tsconfig.json",
+    "build:types": "tsc --emitDeclarationOnly -p ./tsconfig.json --outDir ./dist",
+    "build:vite": "vite build --config ./vite.config.ts",
+    "build": "npm run build:clean && npm run build:check && npm run build:vite && npm run build:types",
+    "test:clean": "rm -rf test-results/ coverage/",
     "test:unit:coverage": "vitest run --coverage",
     "prepare": "npm run build"
   },
