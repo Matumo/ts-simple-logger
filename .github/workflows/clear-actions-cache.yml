@@ -1,0 +1,31 @@
+name: Clear GitHub Actions cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to target (leave blank to clear all)"
+        required: false
+        default: ""
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete caches via gh CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          set -eu
+          if [ -n "$TARGET_BRANCH" ]; then
+            echo "Deleting caches for branch: $TARGET_BRANCH"
+            gh actions-cache delete --all --branch "$TARGET_BRANCH" --confirm
+          else
+            echo "Deleting all caches (all branches)"
+            gh actions-cache delete --all --confirm
+          fi
