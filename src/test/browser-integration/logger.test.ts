@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
 
-test.describe("browser integration demo", () => {
+test.describe("ブラウザ統合テスト", () => {
   let server: StaticServer;
 
   test.beforeAll(async () => {
@@ -18,7 +18,7 @@ test.describe("browser integration demo", () => {
     await server.close();
   });
 
-  test("module and IIFE bundles log with prefixes", async ({ page }) => {
+  test("出力したモジュールとIIFEの動作確認", async ({ page, browserName }) => {
     await page.addInitScript(() => {
       const logs: { method: string; text: string }[] = [];
       const methods = ["log", "info", "warn", "error", "debug", "trace"] as const;
@@ -39,6 +39,9 @@ test.describe("browser integration demo", () => {
 
     await page.goto(`${server.url}/demo`);
 
+    const browserVersion = page.context().browser()?.version() ?? "unknown";
+    console.log(`ブラウザ情報: ${browserName} ${browserVersion}`);
+
     await page.getByRole("button", { name: "Run module logs" }).click();
     await page.getByRole("button", { name: "Run IIFE logs" }).click();
 
@@ -53,6 +56,8 @@ test.describe("browser integration demo", () => {
     const logs = await page.evaluate(
       () => (globalThis as typeof globalThis & { __PLAYWRIGHT_LOGS__?: { text: string }[] }).__PLAYWRIGHT_LOGS__ ?? []
     );
+
+    console.log("ブラウザログ:", logs.map((entry) => entry.text));
 
     expect(logs.some((entry) => entry.text.includes("[module][module-demo] TRACE"))).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("[module][module-network] WARN"))).toBeTruthy();

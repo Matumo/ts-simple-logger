@@ -42,7 +42,7 @@ function createConsoleSpies() {
   };
 }
 
-describe("node integration", () => {
+describe("Node統合テスト", () => {
   let outputs: string[];
   let restoreConsole: () => void;
 
@@ -86,5 +86,7 @@ describe("node integration", () => {
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][WARN]"))).toBeTruthy();
     expect(outputs.some((line) => line.includes("should be filtered"))).toBeFalsy();
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][ERROR]"))).toBeTruthy();
+
+    console.log("Nodeログ:", outputs);
   });
 });
