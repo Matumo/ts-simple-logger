@@ -41,7 +41,7 @@ jobs:
       # Build
       - name: Build
         run: npm run build
-  linter:
+  check:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
@@ -52,9 +52,9 @@ jobs:
         with:
           runs-on: ${{ needs.env.outputs.default_os }}
           node-version: ${{ needs.env.outputs.default_node }}
-      # Linter
-      - name: Run ESLint
-        run: npm run lint
+      # Check
+      - name: Run Check
+        run: npm run check
   unit-test:
     needs: env
     strategy:
@@ -71,10 +71,59 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ matrix.node }}
       # Unit Tests
+      - name: Run unit tests
+        run: npm run test:unit
+  unit-test-coverage:
+    needs: env
+    runs-on: ${{ needs.env.outputs.default_os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ needs.env.outputs.default_os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      # Unit Tests with coverage
       - name: Run tests with coverage
         run: npm run test:unit:coverage
-      - name: Upload coverage
-        uses: actions/upload-artifact@v6
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-node-${{ matrix.node }}
-          path: ./coverage
+          name: unit-test-coverage
+          path: coverage
+  integration-node:
+    needs: env
+    strategy:
+      matrix:
+        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
+        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ matrix.os }}
+          node-version: ${{ matrix.node }}
+      - name: Run node integration tests
+        run: npm run test:integration:node
+  integration-browser:
+    needs: env
+    strategy:
+      matrix:
+        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ matrix.os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      - name: Install Playwright browsers
+        run: npm run test:install
+      - name: Run browser integration tests
+        run: npm run test:integration:browser

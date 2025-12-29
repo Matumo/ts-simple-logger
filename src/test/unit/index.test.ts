@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
-import type { LogLevel } from "../main/index";
+import type { LogLevel } from "@main/index";
 import {
   getDefaultConfig,
   getLibraryDefaults,
@@ -10,7 +10,7 @@ import {
   setLogLevel,
   setLoggerConfig,
   setLoggerLevel,
-} from "../main/index";
+} from "@main/index";
 
 const originalConsole = globalThis.console;
 
@@ -93,8 +93,8 @@ describe("ログ出力の挙動", () => {
       silent: 100,
     };
 
-    const expectCall = (spy: MockInstance, shouldCall: boolean, ...args: unknown[]): void => {
-      if (shouldCall) expect(spy).toHaveBeenCalledWith(...args);
+    const expectCall = (spy: MockInstance, logLevel: LogLevel, baseLevel: LogLevel, ...args: unknown[]): void => {
+      if (LEVEL_ORDER[baseLevel] <= LEVEL_ORDER[logLevel]) expect(spy).toHaveBeenCalledWith(...args);
       else expect(spy).not.toHaveBeenCalled();
     };
 
@@ -115,12 +115,12 @@ describe("ログ出力の挙動", () => {
       logger.warn("w");
       logger.error("e");
 
-      const should = (need: LogLevel) => LEVEL_ORDER[baseLevel] <= LEVEL_ORDER[need];
-      expectCall(traceSpy, should("trace"), `(LogLevel-${baseLevel}) TRACE:`, "t");
-      expectCall(debugSpy, should("debug"), `(LogLevel-${baseLevel}) DEBUG:`, "d");
-      expectCall(infoSpy, should("info"), `(LogLevel-${baseLevel}) INFO:`, "i");
-      expectCall(warnSpy, should("warn"), `(LogLevel-${baseLevel}) WARN:`, "w");
-      expectCall(errorSpy, should("error"), `(LogLevel-${baseLevel}) ERROR:`, "e");
+      
+      expectCall(traceSpy, "trace", baseLevel, `(LogLevel-${baseLevel}) TRACE:`, "t");
+      expectCall(debugSpy, "debug", baseLevel, `(LogLevel-${baseLevel}) DEBUG:`, "d");
+      expectCall(infoSpy, "info", baseLevel, `(LogLevel-${baseLevel}) INFO:`, "i");
+      expectCall(warnSpy, "warn", baseLevel, `(LogLevel-${baseLevel}) WARN:`, "w");
+      expectCall(errorSpy, "error", baseLevel, `(LogLevel-${baseLevel}) ERROR:`, "e");
 
       traceSpy.mockRestore();
       debugSpy.mockRestore();
