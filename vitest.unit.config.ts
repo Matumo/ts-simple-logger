@@ -9,21 +9,16 @@ export default defineConfig({
   resolve: {
     alias: {
       "@main": resolve(projectRoot, "src/main"),
-      "@test": resolve(projectRoot, "src/test"),
-    },
+      "@test": resolve(projectRoot, "src/test")
+    }
   },
   test: {
     environment: "node",
     include: ["src/test/unit/**/*.test.ts"],
     coverage: {
-      provider: 'v8',
-      reporter: [
-        "text",
-        "json-summary",
-        "json",
-        "lcov",
-      ],
-      include: ["src/main/**/*.{ts,tsx}"], // カバレッジ対象
-    },
-  },
+      provider: "v8",
+      reporter: ["text", "json-summary", "json", "lcov"],
+      include: ["src/main/**/*.{ts,tsx}"]
+    }
+  }
 });

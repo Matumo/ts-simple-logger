@@ -240,3 +240,4 @@ $RECYCLE.BIN/
 # Build output
 dist/
 memo/
+test-results/
