@@ -81,7 +81,7 @@ jobs:
       - name: All prerequisite jobs completed
         run: echo "build/check/coverage OK"
   unit-test:
-    needs: [pre-check]
+    needs: [env, pre-check]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -99,7 +99,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
   integration-node:
-    needs: [pre-check]
+    needs: [env, pre-check]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -116,7 +116,7 @@ jobs:
       - name: Run node integration tests
         run: npm run test:integration:node
   integration-browser:
-    needs: [pre-check]
+    needs: [env, pre-check]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
