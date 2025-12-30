@@ -28,12 +28,16 @@ runs:
         fi
         echo "dir=$cache_dir" >> "$GITHUB_OUTPUT"
     - name: Cache npm
+      id: cache_dependencies
       uses: actions/cache@v4
       with:
-        path: ${{ steps.npm_cache.outputs.dir }}
+        path: |
+          ${{ steps.npm_cache.outputs.dir }}
+          node_modules
         key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
+        # restore-keys: |
+        #   ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
     - name: Install dependencies
+      if: steps.cache_dependencies.outputs.cache-hit != 'true'
       shell: bash
       run: npm ci
