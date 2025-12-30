@@ -125,7 +125,7 @@ jobs:
           name: unit-test-coverage
           path: coverage
   unit-test:
-    needs: [env, build, check, unit-test-coverage]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -143,7 +143,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
   integration-node:
-    needs: [env, build, check, unit-test-coverage]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -160,7 +160,7 @@ jobs:
       - name: Run node integration tests
         run: npm run test:integration:node
   integration-browser:
-    needs: [env, build, check, unit-test-coverage]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
