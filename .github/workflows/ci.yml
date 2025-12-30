@@ -98,7 +98,7 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ matrix.node }}
   unit-test:
-    needs: [env, pre-check]
+    needs: [env, cache]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -116,7 +116,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
   integration-node:
-    needs: [env, pre-check]
+    needs: [env, cache]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -133,7 +133,7 @@ jobs:
       - name: Run node integration tests
         run: npm run test:integration:node
   integration-browser:
-    needs: [env, pre-check]
+    needs: [env, cache]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
