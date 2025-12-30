@@ -42,7 +42,7 @@ jobs:
       - name: Build
         run: npm run build
   check:
-    needs: [env, build]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
@@ -56,7 +56,7 @@ jobs:
       - name: Run Check
         run: npm run check
   unit-test-coverage:
-    needs: [env, build]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
@@ -74,31 +74,8 @@ jobs:
         with:
           name: unit-test-coverage
           path: coverage
-  cache:
-    needs: [env, build]
-    strategy:
-      matrix:
-        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
-        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      # Setup
-      - uses: actions/checkout@v6
-      - name: Check cache availability
-        id: cache_lookup
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ matrix.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
-          lookup-only: true
-      - name: Prepare environment
-        if: steps.cache_lookup.outputs.cache-hit != 'true'
-        uses: ./.github/actions/project-setup
-        with:
-          runs-on: ${{ matrix.os }}
-          node-version: ${{ matrix.node }}
   unit-test:
-    needs: [env, cache, check, unit-test-coverage]
+    needs: [env, build, check, unit-test-coverage]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -116,7 +93,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
   integration-node:
-    needs: [env, cache, check, unit-test-coverage]
+    needs: [env, build, check, unit-test-coverage]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -133,7 +110,7 @@ jobs:
       - name: Run node integration tests
         run: npm run test:integration:node
   integration-browser:
-    needs: [env, cache, check, unit-test-coverage]
+    needs: [env, build, check, unit-test-coverage]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -147,8 +124,6 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ needs.env.outputs.default_node }}
       - name: Install Playwright browsers
-        run: npm run test:install1
-      - name: Install Playwright browsers
-        run: npm run test:install2
+        run: npm run test:install
       - name: Run browser integration tests
         run: npm run test:integration:browser
