@@ -24,9 +24,6 @@
     "node": ">=24 <26"
   },
   "scripts": {
-    "lint": "npm run lint:check",
-    "lint:check": "eslint ./src --max-warnings=0",
-    "lint:fix": "eslint ./src --max-warnings=0 --fix",
     "clean": "npm run clean:dist && npm run clean:test",
     "clean:dist": "rimraf dist",
     "clean:test": "rimraf test-results coverage",
@@ -35,6 +32,9 @@
     "check:type:src": "tsc --noEmit -p ./tsconfig.json",
     "check:type:test": "npm run build && npm run check:type:test:tsc",
     "check:type:test:tsc": "tsc --noEmit -p ./src/test/tsconfig.json",
+    "lint": "npm run lint:check",
+    "lint:check": "eslint ./src --max-warnings=0",
+    "lint:fix": "eslint ./src --max-warnings=0 --fix",
     "build": "npm run build:clean && npm run build:bundle && npm run build:types",
     "build:clean": "npm run clean:dist",
     "build:bundle": "vite build --config ./vite.config.ts",

@@ -55,24 +55,6 @@ jobs:
       # Check
       - name: Run Check
         run: npm run check
-  unit-test:
-    needs: env
-    strategy:
-      matrix:
-        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
-        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      # Setup
-      - uses: actions/checkout@v6
-      - name: Prepare environment
-        uses: ./.github/actions/project-setup
-        with:
-          runs-on: ${{ matrix.os }}
-          node-version: ${{ matrix.node }}
-      # Unit Tests
-      - name: Run unit tests
-        run: npm run test:unit
   unit-test-coverage:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
@@ -92,6 +74,24 @@ jobs:
         with:
           name: unit-test-coverage
           path: coverage
+  unit-test:
+    needs: env
+    strategy:
+      matrix:
+        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
+        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ matrix.os }}
+          node-version: ${{ matrix.node }}
+      # Unit Tests
+      - name: Run unit tests
+        run: npm run test:unit
   integration-node:
     needs: env
     strategy:
