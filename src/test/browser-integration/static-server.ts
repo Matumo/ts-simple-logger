@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import { createServer } from "node:http";
 import * as path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export type StaticServer = {
   url: string;
@@ -75,4 +76,26 @@ export async function startStaticServer(rootDir: string): Promise<StaticServer> 
     url: `http://127.0.0.1:${address.port}`,
     close: () => new Promise((resolve) => server.close(() => resolve()))
   };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const repoRoot = path.resolve(__dirname, "..", "..", "..");
+
+  try {
+    const server = await startStaticServer(repoRoot);
+    console.log(`Demo server running at ${server.url}`);
+    console.log("Press Ctrl+C to stop.");
+
+    const shutdown = async () => {
+      await server.close();
+      process.exit(0);
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  } catch (error) {
+    console.error("Failed to start static server.", error);
+    process.exit(1);
+  }
 }

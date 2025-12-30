@@ -39,6 +39,7 @@
     "build:clean": "npm run clean:dist",
     "build:bundle": "vite build --config ./vite.config.ts",
     "build:types": "tsc --emitDeclarationOnly -p ./tsconfig.json --outDir ./dist",
+    "demo:serve": "tsx ./src/test/browser-integration/static-server.ts",
     "test": "npm run test:unit && npm run test:integration",
     "test:install": "playwright install --with-deps",
     "test:unit": "vitest run --config vitest.unit.config.ts",
@@ -63,6 +64,7 @@
     "rimraf": "^6.1.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0",
+    "tsx": "^4.19.2",
     "vite": "^7.3.0",
     "vitest": "^4.0.15"
   }
