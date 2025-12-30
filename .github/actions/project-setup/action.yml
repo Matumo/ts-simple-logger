@@ -16,25 +16,25 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-    - name: Determine npm cache directory
-      id: npm_cache
-      shell: bash
-      run: |
-        cache_dir=$(npm config get cache)
-        echo "Resolved npm cache dir: $cache_dir"
-        if [ ! -d "$cache_dir" ]; then
-          echo "npm cache directory not found"
-          exit 1
-        fi
-        echo "dir=$cache_dir" >> "$GITHUB_OUTPUT"
-    - name: Cache npm
-      id: cache_dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{ steps.npm_cache.outputs.dir }}
-          node_modules
-        key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
+    # - name: Determine npm cache directory
+    #   id: npm_cache
+    #   shell: bash
+    #   run: |
+    #     cache_dir=$(npm config get cache)
+    #     echo "Resolved npm cache dir: $cache_dir"
+    #     if [ ! -d "$cache_dir" ]; then
+    #       echo "npm cache directory not found"
+    #       exit 1
+    #     fi
+    #     echo "dir=$cache_dir" >> "$GITHUB_OUTPUT"
+    # - name: Cache npm
+    #   id: cache_dependencies
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: |
+    #       ${{ steps.npm_cache.outputs.dir }}
+    #       node_modules
+    #     key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
     - name: Install dependencies
       if: steps.cache_dependencies.outputs.cache-hit != 'true'
       shell: bash
