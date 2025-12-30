@@ -27,23 +27,8 @@ jobs:
           echo "default_node=25.x" >> "$GITHUB_OUTPUT"
           echo 'matrix_os=["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]' >> "$GITHUB_OUTPUT"
           echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"
-  cache:
-    needs: [env]
-    strategy:
-      matrix:
-        os: ${{ fromJson(needs.env.outputs.matrix_os) }}
-        node: ${{ fromJson(needs.env.outputs.matrix_node) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      # Setup
-      - uses: actions/checkout@v6
-      - name: Prepare environment
-        uses: ./.github/actions/project-setup
-        with:
-          runs-on: ${{ matrix.os }}
-          node-version: ${{ matrix.node }}
   build:
-    needs: [env, cache]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
@@ -57,7 +42,7 @@ jobs:
       - name: Build
         run: npm run build
   check:
-    needs: [env, cache]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
@@ -71,7 +56,7 @@ jobs:
       - name: Run Check
         run: npm run check
   unit-test-coverage:
-    needs: [env, cache]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
@@ -90,7 +75,7 @@ jobs:
           name: unit-test-coverage
           path: coverage
   unit-test:
-    needs: [env, cache]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -108,7 +93,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
   integration-node:
-    needs: [env, cache]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
@@ -125,7 +110,7 @@ jobs:
       - name: Run node integration tests
         run: npm run test:integration:node
   integration-browser:
-    needs: [env, cache]
+    needs: [env]
     strategy:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
