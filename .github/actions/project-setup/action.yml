@@ -35,8 +35,6 @@ runs:
           ${{ steps.npm_cache.outputs.dir }}
           node_modules
         key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
-        # restore-keys: |
-        #   ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
     - name: Install dependencies
       if: steps.cache_dependencies.outputs.cache-hit != 'true'
       shell: bash
