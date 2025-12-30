@@ -76,6 +76,10 @@ jobs:
           path: coverage
   pre-check:
     needs: [build, check, unit-test-coverage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All prerequisite jobs completed
+        run: echo "build/check/coverage OK"
   unit-test:
     needs: [pre-check]
     strategy:
