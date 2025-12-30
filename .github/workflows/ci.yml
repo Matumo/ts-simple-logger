@@ -31,16 +31,20 @@ jobs:
     steps:
       - id: set
         run: |
+          # デフォルトOS
           echo "default_os=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+          # デフォルトNode
           echo "default_node=25.x" >> "$GITHUB_OUTPUT"
+          # OSマトリックス
           full_matrix='["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]'
           ubuntu_only='["ubuntu-24.04"]'
-
           case "${{ github.event_name }}" in
             schedule)
+              # スケジュールは常に全OS
               echo "matrix_os=$full_matrix" >> "$GITHUB_OUTPUT"
               ;;
             workflow_dispatch)
+              # 手動実行時は入力で切り替え
               if [ "${{ github.event.inputs.os-set }}" = "ubuntu-only" ]; then
                 echo "matrix_os=$ubuntu_only" >> "$GITHUB_OUTPUT"
               else
@@ -48,6 +52,7 @@ jobs:
               fi
               ;;
             push)
+              # push は main/develop のとき全OS、それ以外は ubuntu のみ
               branch="${{ github.ref_name }}"
               if [ "$branch" = "main" ] || [ "$branch" = "develop" ]; then
                 echo "matrix_os=$full_matrix" >> "$GITHUB_OUTPUT"
@@ -56,6 +61,7 @@ jobs:
               fi
               ;;
             pull_request)
+              # PR はマージ先が main/develop のとき全OS
               base_branch="${{ github.event.pull_request.base.ref }}"
               if [ "$base_branch" = "main" ] || [ "$base_branch" = "develop" ]; then
                 echo "matrix_os=$full_matrix" >> "$GITHUB_OUTPUT"
@@ -64,9 +70,12 @@ jobs:
               fi
               ;;
             *)
-              echo "matrix_os=$ubuntu_only" >> "$GITHUB_OUTPUT"
+              # その他はエラー
+              echo "Unknown event: ${{ github.event_name }}"
+              exit 1
               ;;
           esac
+          # Nodeマトリックス
           echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"
   build:
     needs: [env]
