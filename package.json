@@ -1,6 +1,6 @@
 {
   "name": "ts-simple-logger",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Simple console logger for browsers and Node.",
   "type": "module",
   "main": "./dist/index.js",
@@ -47,7 +47,7 @@
     "test:integration:node": "npm run build && vitest run --config vitest.node.config.ts",
     "test:integration:browser": "npm run build && playwright test",
     "all": "npm run clean && npm run check && npm run build && npm run test",
-    "prepack": "npm run build"
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
