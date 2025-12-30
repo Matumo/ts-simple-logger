@@ -28,7 +28,7 @@ jobs:
           echo 'matrix_os=["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]' >> "$GITHUB_OUTPUT"
           echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"
   build:
-    needs: [env, cache]
+    needs: [env]
     runs-on: ${{ needs.env.outputs.default_os }}
     steps:
       # Setup
