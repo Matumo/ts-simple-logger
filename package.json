@@ -1,10 +1,7 @@
 {
   "name": "ts-simple-logger",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Simple console logger for browsers and Node.",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Matumo/ts-simple-logger.git"
@@ -13,10 +10,13 @@
   "files": [
     "dist"
   ],
+  "type": "module",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "sideEffects": false,

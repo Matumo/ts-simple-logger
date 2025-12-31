@@ -19,8 +19,12 @@ export default defineConfig({
     lib: {
       entry: resolve(projectRoot, "src/main/index.ts"),
       name: "TsSimpleLogger",
-      fileName: (format) => format === "es" ? "index.js" : `index.${format}.js`,
-      formats: ["es", "iife"],
+      fileName: (format) => {
+        if (format === "es") return "index.js";
+        if (format === "cjs") return "index.cjs";
+        return `index.${format}.js`; // iife -> index.iife.js
+      },
+      formats: ["es", "cjs", "iife"],
     },
-  }
+  },
 });
