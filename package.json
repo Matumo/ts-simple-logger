@@ -40,7 +40,7 @@
     "build:bundle": "vite build --config ./vite.config.ts",
     "build:types": "tsc --emitDeclarationOnly -p ./tsconfig.json --outDir ./dist",
     "demo:serve": "tsx ./src/test/browser-integration/static-server.ts",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "npm run test:unit:coverage && npm run test:integration",
     "test:install": "playwright install --with-deps",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:unit:coverage": "vitest run --config vitest.unit.config.ts --coverage",
