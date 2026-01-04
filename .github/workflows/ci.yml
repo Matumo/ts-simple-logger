@@ -133,21 +133,17 @@ jobs:
           retries=${RETRIES:-3}
           wait_seconds=${WAIT_SECONDS:-10}
           run_cmd=${RUN_CMD:-"npm run test:install"}
-          warning_emitted=0
           for attempt in $(seq 1 "$retries"); do
             if $run_cmd; then
               break
             fi
-            if [ "$warning_emitted" -eq 0 ]; then
-              echo "::warning::Install failed (attempt $attempt/$retries). Will retry up to $retries times."
-              warning_emitted=1
-            fi
+            status=$?
             if [ "$attempt" -lt "$retries" ]; then
-              echo "Install failed (attempt $attempt/$retries). Retrying in ${wait_seconds}s..."
+              echo "::warning::Command failed (attempt $attempt/$retries). Retrying in ${wait_seconds}s..."
               sleep "$wait_seconds"
             else
-              echo "::error::Install failed after $retries attempts."
-              exit 1
+              echo "::error::Command failed after $retries attempts."
+              exit "$status"
             fi
           done
       - name: Run browser integration tests
