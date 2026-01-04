@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const exec = promisify(execFile);
-const npmCmd = "npm";
+const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 const nodeCmd = process.execPath;
 
 const __filename = fileURLToPath(import.meta.url);
