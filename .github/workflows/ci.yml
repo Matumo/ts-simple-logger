@@ -124,6 +124,7 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ needs.env.outputs.default_node }}
       - name: Install Playwright browsers
+        shell: bash
         env:
           RETRIES: 3
           WAIT_SECONDS: 10
