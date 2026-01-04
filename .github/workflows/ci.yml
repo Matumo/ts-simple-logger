@@ -124,6 +124,27 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ needs.env.outputs.default_node }}
       - name: Install Playwright browsers
-        run: npm run test:install
+        env:
+          RETRIES: 3
+          WAIT_SECONDS: 10
+          RUN_CMD: npm run test:install
+        shell: bash
+        run: |
+          retries=${RETRIES:-3}
+          wait_seconds=${WAIT_SECONDS:-10}
+          run_cmd=${RUN_CMD:-"npm run test:install"}
+          for attempt in $(seq 1 "$retries"); do
+            if $run_cmd; then
+              break
+            fi
+            status=$?
+            if [ "$attempt" -lt "$retries" ]; then
+              echo "::warning::Command failed (attempt $attempt/$retries). Retrying in ${wait_seconds}s..."
+              sleep "$wait_seconds"
+            else
+              echo "::error::Command failed after $retries attempts."
+              exit "$status"
+            fi
+          done
       - name: Run browser integration tests
         run: npm run test:integration:browser
