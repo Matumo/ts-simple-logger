@@ -239,5 +239,5 @@ $RECYCLE.BIN/
 
 # Build output
 dist/
-memo/
+dist-pack/
 test-results/
