@@ -1,5 +1,5 @@
 name: Project setup
-description: Set up Node, and cache the npm directory.
+description: Set up Node, and cache dependencies for yarn.
 
 inputs:
   runs-on:
@@ -16,24 +16,26 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-    - name: Determine npm cache directory
-      id: npm_cache
+        cache: yarn
+        cache-dependency-path: yarn.lock
+    - name: Enable corepack
+      shell: bash
+      run: corepack enable
+    - name: Determine yarn cache directory
+      id: yarn_cache
       shell: bash
       run: |
-        cache_dir=$(npm config get cache)
-        echo "Resolved npm cache dir: $cache_dir"
-        if [ ! -d "$cache_dir" ]; then
-          echo "npm cache directory not found"
-          exit 1
-        fi
+        cache_dir=$(yarn config get cacheFolder)
+        echo "Resolved yarn cache dir: $cache_dir"
+        mkdir -p "$cache_dir"
         echo "dir=$cache_dir" >> "$GITHUB_OUTPUT"
-    - name: Cache npm
+    - name: Cache yarn
       uses: actions/cache@v4
       with:
-        path: ${{ steps.npm_cache.outputs.dir }}
-        key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/package-lock.json') }}
+        path: ${{ steps.yarn_cache.outputs.dir }}
+        key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-yarn-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
         restore-keys: |
-          ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
+          ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-yarn-
     - name: Install dependencies
       shell: bash
-      run: npm ci
+      run: yarn install --immutable
