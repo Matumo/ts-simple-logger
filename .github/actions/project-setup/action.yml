@@ -21,6 +21,9 @@ runs:
     - name: Enable corepack
       shell: bash
       run: corepack enable
+    - name: Activate pnpm via corepack
+      shell: bash
+      run: corepack prepare pnpm@10.27.0 --activate
     - name: Determine pnpm store directory
       id: pnpm_store
       shell: bash
