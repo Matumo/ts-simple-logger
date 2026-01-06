@@ -3,5 +3,12 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "dev.containers.copyGitConfig": true
+      }
+    }
+  },
   "remoteUser": "vscode"
 }
