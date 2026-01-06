@@ -104,7 +104,7 @@ describe("Node統合テスト", () => {
       const __dirname = path.dirname(__filename);
       const distPath = path.resolve(__dirname, "../../../dist/index.cjs");
       const require = createRequire(import.meta.url);
-      return require(distPath) as DistModule;
+      return require(distPath);
     });
   });
 });
