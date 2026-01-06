@@ -15,6 +15,7 @@ runs:
     - uses: pnpm/action-setup@v4
       name: Install pnpm
     - name: Setup pnpm cache
+      id: pnpm_store
       shell: bash
       run: |
         store_dir=$(pnpm store path)
