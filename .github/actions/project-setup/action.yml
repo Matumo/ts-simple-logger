@@ -19,8 +19,8 @@ runs:
       run: |
         store_dir=$(pnpm store path)
         echo "Resolved pnpm store dir: $store_dir"
-        if [ ! -d "$store_dir" ]; then
-          echo "pnpm store directory not found"
+        if [ -z "$store_dir" ]; then
+          echo "pnpm store directory not resolved"
           exit 1
         fi
         echo "dir=$store_dir" >> "$GITHUB_OUTPUT"
