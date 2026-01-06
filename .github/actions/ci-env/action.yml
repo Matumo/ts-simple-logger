@@ -1,0 +1,27 @@
+name: CI environment matrix
+description: Define default runner and matrix values for CI workflows.
+
+outputs:
+  default_os:
+    description: Default OS for non-matrix jobs
+    value: ${{ steps.set.outputs.default_os }}
+  default_node:
+    description: Default Node.js version for non-matrix jobs
+    value: ${{ steps.set.outputs.default_node }}
+  matrix_os:
+    description: JSON array of OS values for matrix jobs
+    value: ${{ steps.set.outputs.matrix_os }}
+  matrix_node:
+    description: JSON array of Node.js versions for matrix jobs
+    value: ${{ steps.set.outputs.matrix_node }}
+
+runs:
+  using: composite
+  steps:
+    - id: set
+      shell: bash
+      run: |
+        echo "default_os=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+        echo "default_node=25.x" >> "$GITHUB_OUTPUT"
+        echo 'matrix_os=["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]' >> "$GITHUB_OUTPUT"
+        echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"

@@ -1,12 +1,11 @@
 {
-  "name": "ts-simple-logger",
+  "name": "@matumo/ts-simple-logger",
   "version": "0.3.0",
   "description": "Simple console logger for browsers and Node.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Matumo/ts-simple-logger.git"
   },
-  "private": true,
   "files": [
     "dist"
   ],
@@ -49,8 +48,7 @@
     "test:integration": "npm run test:integration:node && npm run test:integration:browser",
     "test:integration:node": "npm run build && npm run pack && vitest run --config vitest.node.config.ts",
     "test:integration:browser": "npm run build && playwright test",
-    "all": "npm run clean && npm run check && npm run build && npm run test",
-    "prepare": "npm run build"
+    "all": "npm run clean && npm run check && npm run build && npm run test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

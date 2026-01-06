@@ -1,0 +1,43 @@
+name: Publish package to GitHub Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      default_os: ${{ steps.env.outputs.default_os }}
+      default_node: ${{ steps.env.outputs.default_node }}
+    steps:
+      - id: env
+        uses: ./.github/actions/ci-env
+  publish:
+    needs: env
+    runs-on: ${{ needs.env.outputs.default_os }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ needs.env.outputs.default_os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      - name: Configure npm registry
+        shell: bash
+        run: |
+          echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
+          echo '@matumo:registry=https://npm.pkg.github.com' >> ~/.npmrc
+          echo 'always-auth=true' >> ~/.npmrc
+      - name: Build package
+        run: npm run build
+      - name: Publish package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
