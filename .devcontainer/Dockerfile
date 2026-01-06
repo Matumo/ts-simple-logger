@@ -39,9 +39,13 @@ RUN apt-get update && \
     apt-get install -y nodejs npm && \
     npm install n -g && \
     n 25 && \
+    npm install -g corepack && \
     apt-get purge -y nodejs npm && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Yarn (Berry) via Corepack
+RUN corepack enable && corepack prepare yarn@4.12.0 --activate
 
 RUN cat <<'EOF' >/etc/profile.d/host-ip-playwright.sh
 #!/usr/bin/env bash

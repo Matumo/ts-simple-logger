@@ -9,7 +9,7 @@ https://github.com/Matumo/ts-simple-logger/tags
 ## Installation
 
 ```bash
-npm install git+https://github.com/Matumo/ts-simple-logger.git#v0.3.0
+yarn add git+https://github.com/Matumo/ts-simple-logger.git#v0.3.0
 ```
 
 ## Usage
