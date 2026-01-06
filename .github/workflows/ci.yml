@@ -21,6 +21,7 @@ jobs:
       matrix_os: ${{ steps.env.outputs.matrix_os }}
       matrix_node: ${{ steps.env.outputs.matrix_node }}
     steps:
+      - uses: actions/checkout@v6
       - id: env
         uses: ./.github/actions/ci-env
   build:
