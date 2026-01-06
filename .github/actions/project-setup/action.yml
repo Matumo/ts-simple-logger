@@ -12,36 +12,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
       with:
-        node-version: ${{ inputs.node-version }}
-        cache: pnpm
-        cache-dependency-path: pnpm-lock.yaml
-    - name: Enable corepack
-      shell: bash
-      run: corepack enable
-    - name: Activate pnpm via corepack
-      shell: bash
-      run: corepack prepare pnpm@10.27.0 --activate
-    - name: Determine pnpm store directory
-      id: pnpm_store
-      shell: bash
-      run: |
-        store_dir=$(pnpm store path)
-        echo "Resolved pnpm store dir: $store_dir"
-        if [ ! -d "$store_dir" ]; then
-          echo "pnpm store directory not found"
-          exit 1
-        fi
-        echo "dir=$store_dir" >> "$GITHUB_OUTPUT"
-    - name: Cache pnpm store
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.pnpm_store.outputs.dir }}
-        key: ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ inputs.runs-on || runner.os }}-node-${{ inputs.node-version }}-
+        cache: true
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
