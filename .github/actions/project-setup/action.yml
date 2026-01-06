@@ -30,8 +30,6 @@ runs:
       with:
         path: ${{ steps.pnpm_store.outputs.dir }}
         key: ${{ inputs.runs-on || runner.os }}-pnpm-store-${{ inputs.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ inputs.runs-on || runner.os }}-pnpm-store-${{ inputs.node-version }}-
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
