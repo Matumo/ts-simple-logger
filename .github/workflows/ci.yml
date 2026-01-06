@@ -40,7 +40,7 @@ jobs:
           node-version: ${{ needs.env.outputs.default_node }}
       # Build
       - name: Build
-        run: npm run build
+        run: pnpm run build
   check:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
@@ -54,7 +54,7 @@ jobs:
           node-version: ${{ needs.env.outputs.default_node }}
       # Check
       - name: Run Check
-        run: npm run check
+        run: pnpm run check
   unit-test-coverage:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
@@ -68,7 +68,7 @@ jobs:
           node-version: ${{ needs.env.outputs.default_node }}
       # Unit Tests with coverage
       - name: Run tests with coverage
-        run: npm run test:unit:coverage
+        run: pnpm run test:unit:coverage
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v6
         with:
@@ -91,7 +91,7 @@ jobs:
           node-version: ${{ matrix.node }}
       # Unit Tests
       - name: Run unit tests
-        run: npm run test:unit
+        run: pnpm run test:unit
   integration-node:
     needs: env
     strategy:
@@ -108,7 +108,7 @@ jobs:
           runs-on: ${{ matrix.os }}
           node-version: ${{ matrix.node }}
       - name: Run node integration tests
-        run: npm run test:integration:node
+        run: pnpm run test:integration:node
   integration-browser:
     needs: env
     strategy:
@@ -127,12 +127,12 @@ jobs:
         env:
           RETRIES: 3
           WAIT_SECONDS: 10
-          RUN_CMD: npm run test:install
+          RUN_CMD: pnpm run test:install
         shell: bash
         run: |
           retries=${RETRIES:-3}
           wait_seconds=${WAIT_SECONDS:-10}
-          run_cmd=${RUN_CMD:-"npm run test:install"}
+          run_cmd=${RUN_CMD:-"pnpm run test:install"}
           for attempt in $(seq 1 "$retries"); do
             if $run_cmd; then
               break
@@ -147,4 +147,4 @@ jobs:
             fi
           done
       - name: Run browser integration tests
-        run: npm run test:integration:browser
+        run: pnpm run test:integration:browser

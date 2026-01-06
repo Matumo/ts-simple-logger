@@ -40,9 +40,13 @@ RUN apt-get update && \
     apt-get install -y nodejs npm && \
     npm install n -g && \
     n 25 && \
+    npm install -g corepack && \
     apt-get purge -y nodejs npm && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable \
+  && corepack prepare pnpm@10.27.0 --activate
 
 RUN cat <<'EOF' >/etc/profile.d/host-ip-playwright.sh
 #!/usr/bin/env bash
