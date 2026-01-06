@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createRequire } from "node:module";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -57,18 +58,16 @@ describe("Node統合テスト", () => {
     restoreConsole?.();
   });
 
-  it("出力したESMバンドルの動作確認", async () => {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const distUrl = pathToFileURL(path.resolve(__dirname, "../../../dist/index.js")).href;
-
-    const mod: DistModule = await import(distUrl);
+  const runBundleTest = async (loadModule: () => Promise<DistModule>) => {
+    const mod: DistModule = await loadModule();
     const { getLogger, setDefaultConfig, setLoggerLevel } = mod;
+
+    const format = "[node %%][%app][%loggerName][%logLevel]";
 
     setDefaultConfig({
       level: "debug",
       prefixEnabled: true,
-      prefixFormat: "[node %%][%app][%loggerName][%logLevel]",
+      prefixFormat: format,
       placeholders: { "%app": "demo-app" }
     });
 
@@ -88,5 +87,24 @@ describe("Node統合テスト", () => {
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][ERROR]"))).toBeTruthy();
 
     console.log("Nodeログ:", outputs);
+  };
+
+  it("出力したESMバンドルの動作確認", async () => {
+    await runBundleTest(async () => {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const distUrl = pathToFileURL(path.resolve(__dirname, "../../../dist/index.js")).href;
+      return import(distUrl);
+    });
+  });
+
+  it("出力したCJSバンドルの動作確認", async () => {
+    await runBundleTest(async () => {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const distPath = path.resolve(__dirname, "../../../dist/index.cjs");
+      const require = createRequire(import.meta.url);
+      return require(distPath);
+    });
   });
 });
