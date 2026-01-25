@@ -1,6 +1,6 @@
 {
   "name": "@matumo/ts-simple-logger",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Simple console logger for browsers and Node.",
   "repository": {
     "type": "git",
@@ -37,7 +37,6 @@
     "lint:check": "eslint ./src --max-warnings=0",
     "lint:fix": "eslint ./src --max-warnings=0 --fix",
     "build": "pnpm run clean:dist && pnpm run build:bundle && pnpm run build:types",
-    "build:npm": "npm run clean:dist && npm run build:bundle && npm run build:types",
     "build:bundle": "vite build --config ./vite.config.ts",
     "build:types": "tsc --emitDeclarationOnly -p ./tsconfig.json --outDir ./dist",
     "pack:dist": "mkdir -p dist-pack && pnpm pack --pack-destination ./dist-pack",
@@ -51,7 +50,7 @@
     "test:integration:node": "pnpm run build && pnpm run pack && vitest run --config vitest.node.config.ts",
     "test:integration:browser": "pnpm run build && playwright test",
     "all": "pnpm run clean && pnpm run check && pnpm run build && pnpm run test",
-    "prepare": "npm run build:npm"
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
