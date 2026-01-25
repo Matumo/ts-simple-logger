@@ -2,20 +2,20 @@
 
 A simple logger for browsers and Node.
 
-## Versions
+## Published
 
-https://github.com/Matumo/ts-simple-logger/tags
+https://www.npmjs.com/package/@matumo/ts-simple-logger
 
 ## Installation
 
 ```bash
-pnpm add git+https://github.com/Matumo/ts-simple-logger.git#v0.4.0
+npm install @matumo/ts-simple-logger
 ```
 
 ## Usage
 
 ```ts
-import { setDefaultConfig, setLoggerConfig, getLogger } from "ts-simple-logger";
+import { setDefaultConfig, setLoggerConfig, getLogger } from "@matumo/ts-simple-logger";
 
 // Set default configuration
 setDefaultConfig({
@@ -28,12 +28,13 @@ setDefaultConfig({
   // Note: write `%%` in `prefixFormat` when you want a literal `%` in the output.
   // Note: placeholder functions run at log time and must return strings.
 });
-// Set config for a specific logger
-setLoggerConfig("http" /* logger name */, { level: "debug" } /* logger config */);
 
-const log = getLogger("http" /* logger name */);
+// Set config for a specific logger
+setLoggerConfig("logger-name", { level: "debug" });
+
+const log = getLogger("logger-name");
 log.info("server started");
-// % [myapp] (http) INFO: server started
+// % [myapp] (logger-name) INFO: server started
 log.debug("detail...", { foo: "bar" });
-// % [myapp] (http) DEBUG: detail... { foo: "bar" }
+// % [myapp] (logger-name) DEBUG: detail... { foo: "bar" }
 ```
