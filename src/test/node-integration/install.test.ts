@@ -60,7 +60,7 @@ describe("npm install 動作確認", () => {
       await writeFile(
         cjsScriptPath,
         [
-          'const { getLogger, setDefaultConfig } = require("ts-simple-logger");',
+          'const { getLogger, setDefaultConfig } = require("@matumo/ts-simple-logger");',
           "setDefaultConfig({",
           '  level: "debug",',
           '  prefixEnabled: true,',
@@ -88,7 +88,7 @@ describe("npm install 動作確認", () => {
       await writeFile(
         esmScriptPath,
         [
-          'import { getLogger, setDefaultConfig } from "ts-simple-logger";',
+          'import { getLogger, setDefaultConfig } from "@matumo/ts-simple-logger";',
           "setDefaultConfig({",
           '  level: "debug",',
           '  prefixEnabled: true,',
