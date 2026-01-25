@@ -73,6 +73,27 @@ describe("ログ出力の挙動", () => {
     expect(infoSpy).toHaveBeenCalledWith("[%][svc][INFO][root][override][%missing]", "payload");
   });
 
+  it("プレースホルダー関数はログ出力時に評価される", () => {
+    let counter = 0;
+    const counterFn = vi.fn(() => `tick-${++counter}`);
+
+    setDefaultConfig({
+      prefixFormat: "[%counter]",
+      placeholders: { "%counter": counterFn },
+    });
+
+    const infoSpy = vi.spyOn(console, "info");
+    const logger = getLogger("dynamic");
+
+    expect(counterFn).not.toHaveBeenCalled();
+    logger.info("a");
+    logger.info("b");
+
+    expect(counterFn).toHaveBeenCalledTimes(2);
+    expect(infoSpy).toHaveBeenNthCalledWith(1, "[tick-1]", "a");
+    expect(infoSpy).toHaveBeenNthCalledWith(2, "[tick-2]", "b");
+  });
+
   it("プレフィックス無効時はラベルを付けずメッセージのみ出力する", () => {
     const infoSpy = vi.spyOn(console, "info");
     const logger = getLogger("api");

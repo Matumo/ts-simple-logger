@@ -20,9 +20,13 @@ import { setDefaultConfig, setLoggerConfig, getLogger } from "ts-simple-logger";
 // Set default configuration
 setDefaultConfig({
   level: "info", // log level
-  placeholders: { "%appName": "myapp" },
-  prefixFormat: "%% [%appName] (%loggerName) %logLevel:",
+  placeholders: {
+    "%appName": "myapp",
+    "%time": () => new Date().toISOString(),
+  },
+  prefixFormat: "%% [%appName] [%time] (%loggerName) %logLevel:",
   // Note: write `%%` in `prefixFormat` when you want a literal `%` in the output.
+  // Note: placeholder functions run at log time and must return strings.
 });
 // Set config for a specific logger
 setLoggerConfig("http" /* logger name */, { level: "debug" } /* logger config */);
