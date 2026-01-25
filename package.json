@@ -6,7 +6,6 @@
     "type": "git",
     "url": "git+https://github.com/Matumo/ts-simple-logger.git"
   },
-  "private": true,
   "packageManager": "pnpm@10.27.0",
   "files": [
     "dist"
