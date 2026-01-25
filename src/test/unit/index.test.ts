@@ -104,6 +104,16 @@ describe("ログ出力の挙動", () => {
     expect(infoSpy).toHaveBeenCalledWith("no prefix");
   });
 
+  it("プレフィックスが空文字の場合は引数のみ出力する", () => {
+    setDefaultConfig({ prefixFormat: "" });
+    const infoSpy = vi.spyOn(console, "info");
+    const logger = getLogger("empty-prefix");
+
+    logger.info("payload");
+
+    expect(infoSpy).toHaveBeenCalledWith("payload");
+  });
+
   it("ログレベルの動作確認", () => {
     const LEVEL_ORDER: Record<LogLevel, number> = {
       trace: 10,
