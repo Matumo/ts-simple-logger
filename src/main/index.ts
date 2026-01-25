@@ -8,6 +8,8 @@
 // - getLogger でロガーを取得する。
 
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
+export type PlaceholderValue = string | (() => string);
+export type Placeholders = Record<string, PlaceholderValue>;
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
   trace: 10,
@@ -22,7 +24,7 @@ type LoggerConfigFields = {
   level: LogLevel;
   prefixEnabled: boolean;
   prefixFormat: string;
-  placeholders: Record<string, string>;
+  placeholders: Placeholders;
 };
 
 export type PerLoggerConfig = Partial<LoggerConfigFields>;
@@ -89,18 +91,18 @@ function formatPrefix(
   template: string,
   loggerName: string,
   level: LogLevel,
-  placeholders: Record<string, string>,
+  placeholders: Placeholders,
 ): string {
   const lvl = level.toUpperCase();
-  const replacements: Record<string, string> = {
-    ...placeholders,
-    "%loggerName": loggerName,
-    "%logLevel": lvl,
-  };
-
   return template.replaceAll(/%%|%\w+/g, (token) => {
     if (token === "%%") return "%";
-    return replacements[token] ?? token;
+    if (token === "%loggerName") return loggerName;
+    if (token === "%logLevel") return lvl;
+    if (Object.hasOwn(placeholders, token)) {
+      const value = placeholders[token];
+      return typeof value === "function" ? String(value()) : String(value);
+    }
+    return token;
   });
 }
 
@@ -108,7 +110,7 @@ type EffectiveConfig = {
   level: LogLevel;
   prefixEnabled: boolean;
   prefixFormat: string;
-  placeholders: Record<string, string>;
+  placeholders: Placeholders;
 };
 
 function resolveEffectiveConfig(loggerName: string): EffectiveConfig {
@@ -136,21 +138,22 @@ function applyConfigToLogger(logger: Logger): void {
   const cWarn = getConsoleMethod("warn");
   const cError = getConsoleMethod("error");
 
-  const prefixTrace = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "trace", cfg.placeholders) : "";
-  const prefixDebug = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "debug", cfg.placeholders) : "";
-  const prefixInfo = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "info", cfg.placeholders) : "";
-  const prefixWarn = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "warn", cfg.placeholders) : "";
-  const prefixError = cfg.prefixEnabled ? formatPrefix(cfg.prefixFormat, name, "error", cfg.placeholders) : "";
+  const buildMethod = (level: LogLevel, fn: (...a: unknown[]) => void) => {
+    if (!enabled(level)) return noop;
+    if (!cfg.prefixEnabled) return fn;
 
-  const bindWithPrefix = (fn: (...a: unknown[]) => void, prefix: string) => {
-    return prefix ? fn.bind(null, prefix) : fn;
+    return (...args: unknown[]) => {
+      const prefix = formatPrefix(cfg.prefixFormat, name, level, cfg.placeholders);
+      if (prefix) fn(prefix, ...args);
+      else fn(...args);
+    };
   };
 
-  logger.trace = enabled("trace") ? bindWithPrefix(cTrace, prefixTrace) : noop;
-  logger.debug = enabled("debug") ? bindWithPrefix(cDebug, prefixDebug) : noop;
-  logger.info = enabled("info") ? bindWithPrefix(cInfo, prefixInfo) : noop;
-  logger.warn = enabled("warn") ? bindWithPrefix(cWarn, prefixWarn) : noop;
-  logger.error = enabled("error") ? bindWithPrefix(cError, prefixError) : noop;
+  logger.trace = buildMethod("trace", cTrace);
+  logger.debug = buildMethod("debug", cDebug);
+  logger.info = buildMethod("info", cInfo);
+  logger.warn = buildMethod("warn", cWarn);
+  logger.error = buildMethod("error", cError);
 }
 
 function reapplyAllLoggers(): void {

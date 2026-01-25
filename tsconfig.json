@@ -4,7 +4,7 @@
     "module": "esnext",
     "outDir": "./dist",
     "declaration": true,
-    "lib": ["es2021", "dom"],
+    "lib": ["es2022", "dom"],
     "types": ["chrome", "node"],
     "strict": true,
     "skipLibCheck": true,

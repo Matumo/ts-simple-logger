@@ -12,6 +12,7 @@ RUN apt-get update && \
     ca-certificates \
     curl \
     git \
+    ssh \
     gnupg \
     locales \
     sudo \
@@ -24,8 +25,7 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/java-25-openjdk-${TARGETARCH}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-RUN sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
-  && locale-gen
+RUN sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
@@ -39,9 +39,13 @@ RUN apt-get update && \
     apt-get install -y nodejs npm && \
     npm install n -g && \
     n 25 && \
+    npm install -g corepack && \
     apt-get purge -y nodejs npm && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable \
+  && corepack prepare pnpm@10.27.0 --activate
 
 RUN cat <<'EOF' >/etc/profile.d/host-ip-playwright.sh
 #!/usr/bin/env bash
