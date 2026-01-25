@@ -1,5 +1,5 @@
 {
-  "name": "ts-simple-logger",
+  "name": "@matumo/ts-simple-logger",
   "version": "0.4.0",
   "description": "Simple console logger for browsers and Node.",
   "repository": {
