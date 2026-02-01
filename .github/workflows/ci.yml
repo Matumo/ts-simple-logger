@@ -43,7 +43,9 @@ jobs:
         run: pnpm run build
       # Pack
       - name: Pack
-        run: pnpm pack
+        # NOTE: While `pnpm pack` creates a .tgz file in the current directory,
+        #       `pnpm run pack` is a custom script that packs into the `dist-pack/` directory.
+        run: pnpm run pack
       # Upload build artifact
       - name: Upload build artifact
         uses: actions/upload-artifact@v6
