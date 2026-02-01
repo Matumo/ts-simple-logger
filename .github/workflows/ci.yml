@@ -41,6 +41,15 @@ jobs:
       # Build
       - name: Build
         run: pnpm run build
+      # Pack
+      - name: Pack
+        run: pnpm pack
+      # Upload build artifact
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifact
+          path: "dist-pack/*.tgz"
   check:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
