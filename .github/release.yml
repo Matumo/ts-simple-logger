@@ -1,0 +1,25 @@
+changelog:
+  categories:
+    - title: 破壊的変更
+      labels:
+        - breaking
+
+    - title: 新機能
+      labels:
+        - feature
+        - enhancement
+
+    - title: バグ修正
+      labels:
+        - bug
+        - fix
+
+    - title: テスト・内部改善
+      labels:
+        - tests
+        - chore
+        - ci
+
+    - title: その他
+      labels:
+        - "*"
