@@ -4,7 +4,7 @@ changelog:
       labels:
         - breaking
 
-    - title: 新機能
+    - title: 新機能・改善
       labels:
         - feature
         - enhancement
@@ -16,9 +16,11 @@ changelog:
 
     - title: テスト・内部改善
       labels:
-        - tests
+        - test
         - chore
         - ci
+        - github_actions
+        - refactor
 
     - title: その他
       labels:
