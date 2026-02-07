@@ -35,7 +35,28 @@ describe("設定参照系", () => {
     });
     expect(defaults).toEqual(library);
     expect(defaults).not.toBe(library);
-    expect(sut.getPerLoggerConfig()).toEqual({});
+    expect(sut.getLoggerOverrides("no-overrides-logger")).toEqual({});
+    expect(sut.getEffectiveLoggerConfig("no-overrides-logger")).toEqual(library);
+  });
+
+  it("デフォルトと個別設定をマージした内容を返す", () => {
+    sut.setDefaultConfig({
+      level: "warn",
+      prefixFormat: "[%loggerName] %logLevel",
+      placeholders: { "%app": "root", "%shared": "base" },
+    });
+    sut.setLoggerConfig("api", {
+      level: "debug",
+      prefixEnabled: false,
+      placeholders: { "%app": "svc", "%local": "x" },
+    });
+
+    expect(sut.getEffectiveLoggerConfig("api")).toEqual({
+      level: "debug",
+      prefixEnabled: false,
+      prefixFormat: "[%loggerName] %logLevel",
+      placeholders: { "%app": "svc", "%shared": "base", "%local": "x" },
+    });
   });
 });
 
@@ -172,7 +193,7 @@ describe("ログ出力の挙動", () => {
     logger.info("configured");
 
     expect(infoSpy).toHaveBeenCalledWith("<custom|INFO>", "configured");
-    expect(sut.getPerLoggerConfig().custom?.prefixFormat).toBe("<%loggerName|%logLevel>");
+    expect(sut.getLoggerOverrides("custom").prefixFormat).toBe("<%loggerName|%logLevel>");
   });
 
   it("setLoggerLevel でデフォルトよりも緩いレベルに個別上書きできる", () => {
@@ -230,6 +251,10 @@ describe("設定のバリデーション", () => {
   it("無効な名前の個別設定更新は拒否する", () => {
     expect(() => sut.setLoggerConfig("", { level: "error" })).toThrow("logger name must be a non-empty string");
   });
+  it("無効な名前の参照は拒否する", () => {
+    expect(() => sut.getLoggerOverrides("")).toThrow("logger name must be a non-empty string");
+    expect(() => sut.getEffectiveLoggerConfig(" ")).toThrow("logger name must be a non-empty string");
+  });
 
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
     const logger = sut.getLogger("placeholders");
@@ -260,7 +285,7 @@ describe("設定のバリデーション", () => {
 
     expect(infoSpy).toHaveBeenNthCalledWith(1, "<stick sticky INFO>", "before default change");
     expect(infoSpy).toHaveBeenNthCalledWith(2, "<stick sticky INFO>", "after default change");
-    expect(sut.getPerLoggerConfig().sticky?.prefixFormat).toBe("<stick %loggerName %logLevel>");
-    expect(sut.getPerLoggerConfig().sticky?.level).toBe("debug");
+    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel>");
+    expect(sut.getLoggerOverrides("sticky").level).toBe("debug");
   });
 });
