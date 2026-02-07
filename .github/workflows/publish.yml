@@ -5,13 +5,10 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  id-token: write  # Required for OIDC
-  contents: read
-
 jobs:
   env:
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       default_os: ${{ steps.set.outputs.default_os }}
       default_node: ${{ steps.set.outputs.default_node }}
@@ -27,6 +24,9 @@ jobs:
   publish:
     runs-on: ${{ needs.env.outputs.default_os }}
     needs: env
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
