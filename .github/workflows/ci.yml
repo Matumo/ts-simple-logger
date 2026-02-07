@@ -1,8 +1,5 @@
 name: CI
 
-permissions:
-  contents: read
-
 on:
   push:
     branches: [ "main", "develop", "*" ]
@@ -15,6 +12,7 @@ on:
 jobs:
   env:
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       default_os: ${{ steps.set.outputs.default_os }}
       default_node: ${{ steps.set.outputs.default_node }}
@@ -30,6 +28,8 @@ jobs:
   build:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
@@ -41,9 +41,22 @@ jobs:
       # Build
       - name: Build
         run: pnpm run build
+      # Pack
+      - name: Pack
+        # NOTE: While `pnpm pack` creates a .tgz file in the current directory,
+        #       `pnpm run pack` is a custom script that packs into the `dist-pack/` directory.
+        run: pnpm run pack
+      # Upload build artifact
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-artifact
+          path: "dist-pack/*.tgz"
   check:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
@@ -58,6 +71,8 @@ jobs:
   unit-test-coverage:
     needs: env
     runs-on: ${{ needs.env.outputs.default_os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
@@ -81,6 +96,8 @@ jobs:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
         node: ${{ fromJson(needs.env.outputs.matrix_node) }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
@@ -99,6 +116,8 @@ jobs:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
         node: ${{ fromJson(needs.env.outputs.matrix_node) }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6
@@ -115,6 +134,8 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.env.outputs.matrix_os) }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     steps:
       # Setup
       - uses: actions/checkout@v6

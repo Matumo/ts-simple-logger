@@ -3,13 +3,12 @@ name: Clear GitHub Actions cache
 on:
   workflow_dispatch:
 
-permissions:
-  actions: write
-  contents: read
-
 jobs:
   clear-cache:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - name: Delete caches

@@ -1,0 +1,66 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  env:
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      default_os: ${{ steps.set.outputs.default_os }}
+      default_node: ${{ steps.set.outputs.default_node }}
+      matrix_os: ${{ steps.set.outputs.matrix_os }}
+      matrix_node: ${{ steps.set.outputs.matrix_node }}
+    steps:
+      - id: set
+        run: |
+          echo "default_os=ubuntu-24.04" >> "$GITHUB_OUTPUT"
+          echo "default_node=25.x" >> "$GITHUB_OUTPUT"
+          echo 'matrix_os=["ubuntu-24.04","ubuntu-24.04-arm","windows-2025","windows-11-arm","macos-15-intel","macos-26"]' >> "$GITHUB_OUTPUT"
+          echo 'matrix_node=["24.x","25.x"]' >> "$GITHUB_OUTPUT"
+  publish:
+    runs-on: ${{ needs.env.outputs.default_os }}
+    needs: env
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+    steps:
+      # Setup
+      - uses: actions/checkout@v6
+      - name: Prepare environment
+        uses: ./.github/actions/project-setup
+        with:
+          runs-on: ${{ needs.env.outputs.default_os }}
+          node-version: ${{ needs.env.outputs.default_node }}
+      - name: Install Playwright browsers
+        env:
+          RETRIES: 3
+          WAIT_SECONDS: 10
+          RUN_CMD: pnpm run test:install
+        shell: bash
+        run: |
+          retries=${RETRIES:-3}
+          wait_seconds=${WAIT_SECONDS:-10}
+          run_cmd=${RUN_CMD:-"pnpm run test:install"}
+          for attempt in $(seq 1 "$retries"); do
+            if $run_cmd; then
+              break
+            fi
+            status=$?
+            if [ "$attempt" -lt "$retries" ]; then
+              echo "::warning::Command failed (attempt $attempt/$retries). Retrying in ${wait_seconds}s..."
+              sleep "$wait_seconds"
+            else
+              echo "::error::Command failed after $retries attempts."
+              exit "$status"
+            fi
+          done
+      # Build and Test
+      - name: Run all build and tests
+        run: pnpm run all
+      # Publish
+      - name: Publish Package
+        run: pnpm run publish

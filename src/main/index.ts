@@ -45,10 +45,6 @@ type State = {
   loggers: Map<string, Logger>;
 };
 
-declare global {
-  var __MYLOGGER_STATE__: State | undefined;
-}
-
 function noop(): void {}
 
 function getConsoleMethod(
@@ -70,21 +66,24 @@ function createLibraryDefaults(): LoggerConfigFields {
     level: "info",
     prefixEnabled: true,
     prefixFormat: "(%loggerName) %logLevel:",
-    placeholders: { },
+    placeholders: {},
   };
 }
 
+function createState(): State {
+  const libraryDefaults = createLibraryDefaults();
+  return {
+    libraryDefaults,
+    defaults: { ...libraryDefaults, placeholders: { ...libraryDefaults.placeholders } },
+    perLogger: {},
+    loggers: new Map(),
+  };
+}
+
+const state: State = createState();
+
 function getState(): State {
-  if (!globalThis.__MYLOGGER_STATE__) {
-    const libraryDefaults = createLibraryDefaults();
-    globalThis.__MYLOGGER_STATE__ = {
-      libraryDefaults,
-      defaults: { ...libraryDefaults, placeholders: { ...libraryDefaults.placeholders } },
-      perLogger: {},
-      loggers: new Map(),
-    };
-  }
-  return globalThis.__MYLOGGER_STATE__;
+  return state;
 }
 
 function formatPrefix(
@@ -239,8 +238,20 @@ export function getLogger(name: string): Logger {
 export function getDefaultConfig(): Readonly<LoggerConfigFields> {
   return getState().defaults;
 }
-export function getPerLoggerConfig(): Readonly<Record<string, PerLoggerConfig>> {
-  return getState().perLogger;
+export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
+  const state = getState();
+  const key = name?.trim();
+  if (!key) {
+    throw new Error("logger name must be a non-empty string");
+  }
+  return state.perLogger[key] ?? {};
+}
+export function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFields> {
+  const key = name?.trim();
+  if (!key) {
+    throw new Error("logger name must be a non-empty string");
+  }
+  return resolveEffectiveConfig(key);
 }
 export function getLibraryDefaults(): Readonly<LoggerConfigFields> {
   return getState().libraryDefaults;

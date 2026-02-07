@@ -1,18 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import type { LogLevel } from "@main/index";
-import {
-  getDefaultConfig,
-  getLibraryDefaults,
-  getLogger,
-  getPerLoggerConfig,
-  setDefaultConfig,
-  setLogLevel,
-  setLoggerConfig,
-  setLoggerLevel,
-} from "@main/index";
 
 const originalConsole = globalThis.console;
+let sut: typeof import("@main/index");
 
 function restoreConsole(): void {
   globalThis.console = originalConsole;
@@ -24,16 +15,17 @@ function restoreConsole(): void {
   console.log = originalConsole.log;
 }
 
-beforeEach(() => {
-  globalThis.__MYLOGGER_STATE__ = undefined;
+beforeEach(async () => {
   vi.restoreAllMocks();
   restoreConsole();
+  vi.resetModules();
+  sut = await import("@main/index");
 });
 
 describe("設定参照系", () => {
   it("ライブラリデフォルトがランタイムデフォルトとして複製される", () => {
-    const library = getLibraryDefaults();
-    const defaults = getDefaultConfig();
+    const library = sut.getLibraryDefaults();
+    const defaults = sut.getDefaultConfig();
 
     expect(library).toEqual({
       level: "info",
@@ -43,31 +35,64 @@ describe("設定参照系", () => {
     });
     expect(defaults).toEqual(library);
     expect(defaults).not.toBe(library);
-    expect(getPerLoggerConfig()).toEqual({});
+    expect(sut.getLoggerOverrides("no-overrides-logger")).toEqual({});
+    expect(sut.getEffectiveLoggerConfig("no-overrides-logger")).toEqual(library);
+  });
+
+  it("デフォルトと個別設定をマージした内容を返す", () => {
+    sut.setDefaultConfig({
+      level: "warn",
+      prefixFormat: "[%loggerName] %logLevel",
+      placeholders: { "%app": "root", "%shared": "base" },
+    });
+    sut.setLoggerConfig("api", {
+      level: "debug",
+      prefixEnabled: false,
+      placeholders: { "%app": "svc", "%local": "x" },
+    });
+
+    expect(sut.getEffectiveLoggerConfig("api")).toEqual({
+      level: "debug",
+      prefixEnabled: false,
+      prefixFormat: "[%loggerName] %logLevel",
+      placeholders: { "%app": "svc", "%shared": "base", "%local": "x" },
+    });
+  });
+});
+
+describe("モジュール再インポート", () => {
+  it("複数回インポートしても状態が維持される", async () => {
+    sut.setDefaultConfig({ level: "debug" });
+    const logger = sut.getLogger("multi");
+
+    const reimported = await import("@main/index");
+
+    expect(reimported.getDefaultConfig().level).toBe("debug");
+    expect(reimported.getLogger("multi")).toBe(logger);
   });
 });
 
 describe("ロガー生成とバリデーション", () => {
   it("無効なロガー名は拒否する", () => {
-    expect(() => getLogger("")).toThrow("logger name must be a non-empty string");
+    expect(() => sut.getLogger("")).toThrow("logger name must be a non-empty string");
   });
   it("ロガーをキャッシュする", () => {
-    const first = getLogger("core");
-    const second = getLogger("core");
+    const first = sut.getLogger("core");
+    const second = sut.getLogger("core");
     expect(second).toBe(first);
   });
 });
 
 describe("ログ出力の挙動", () => {
   it("プレースホルダーとエスケープを含むプレフィックスを整形する", () => {
-    setDefaultConfig({
+    sut.setDefaultConfig({
       prefixFormat: "[%%][%loggerName][%logLevel][%appName][%custom][%missing]",
       placeholders: { "%appName": "root", "%custom": "default" },
     });
-    setLoggerConfig("svc", { placeholders: { "%custom": "override" } });
+    sut.setLoggerConfig("svc", { placeholders: { "%custom": "override" } });
 
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("svc");
+    const logger = sut.getLogger("svc");
     logger.info("payload");
 
     expect(infoSpy).toHaveBeenCalledWith("[%][svc][INFO][root][override][%missing]", "payload");
@@ -77,13 +102,13 @@ describe("ログ出力の挙動", () => {
     let counter = 0;
     const counterFn = vi.fn(() => `tick-${++counter}`);
 
-    setDefaultConfig({
+    sut.setDefaultConfig({
       prefixFormat: "[%counter]",
       placeholders: { "%counter": counterFn },
     });
 
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("dynamic");
+    const logger = sut.getLogger("dynamic");
 
     expect(counterFn).not.toHaveBeenCalled();
     logger.info("a");
@@ -96,18 +121,18 @@ describe("ログ出力の挙動", () => {
 
   it("プレフィックス無効時はラベルを付けずメッセージのみ出力する", () => {
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("api");
+    const logger = sut.getLogger("api");
 
-    setDefaultConfig({ prefixEnabled: false });
+    sut.setDefaultConfig({ prefixEnabled: false });
     logger.info("no prefix");
 
     expect(infoSpy).toHaveBeenCalledWith("no prefix");
   });
 
   it("プレフィックスが空文字の場合は引数のみ出力する", () => {
-    setDefaultConfig({ prefixFormat: "" });
+    sut.setDefaultConfig({ prefixFormat: "" });
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("empty-prefix");
+    const logger = sut.getLogger("empty-prefix");
 
     logger.info("payload");
 
@@ -138,8 +163,8 @@ describe("ログ出力の挙動", () => {
       const warnSpy = vi.spyOn(console, "warn");
       const errorSpy = vi.spyOn(console, "error");
 
-      setLogLevel(baseLevel);
-      const logger = getLogger(`LogLevel-${baseLevel}`);
+      sut.setLogLevel(baseLevel);
+      const logger = sut.getLogger(`LogLevel-${baseLevel}`);
       logger.trace("t");
       logger.debug("d");
       logger.info("i");
@@ -162,22 +187,22 @@ describe("ログ出力の挙動", () => {
 
   it("ロガー個別設定の更新を再適用する", () => {
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("custom");
+    const logger = sut.getLogger("custom");
 
-    setLoggerConfig("custom", { prefixFormat: "<%loggerName|%logLevel>" });
+    sut.setLoggerConfig("custom", { prefixFormat: "<%loggerName|%logLevel>" });
     logger.info("configured");
 
     expect(infoSpy).toHaveBeenCalledWith("<custom|INFO>", "configured");
-    expect(getPerLoggerConfig().custom?.prefixFormat).toBe("<%loggerName|%logLevel>");
+    expect(sut.getLoggerOverrides("custom").prefixFormat).toBe("<%loggerName|%logLevel>");
   });
 
   it("setLoggerLevel でデフォルトよりも緩いレベルに個別上書きできる", () => {
-    setLogLevel("error");
-    setLoggerLevel("override-level", "debug");
+    sut.setLogLevel("error");
+    sut.setLoggerLevel("override-level", "debug");
 
     const debugSpy = vi.spyOn(console, "debug");
     const warnSpy = vi.spyOn(console, "warn");
-    const logger = getLogger("override-level");
+    const logger = sut.getLogger("override-level");
 
     logger.debug("allowed");
     logger.warn("also allowed");
@@ -187,11 +212,11 @@ describe("ログ出力の挙動", () => {
   });
 
   it("エラーレベル時は warn を無効化し error は通す", () => {
-    setLogLevel("error");
+    sut.setLogLevel("error");
     const warnSpy = vi.spyOn(console, "warn");
     const errorSpy = vi.spyOn(console, "error");
 
-    const logger = getLogger("errors-only");
+    const logger = sut.getLogger("errors-only");
     logger.warn("skip");
     logger.error("recorded");
 
@@ -205,8 +230,8 @@ describe("ログ出力の挙動", () => {
     console.trace = undefined;
     console.log = logSpy;
 
-    setLogLevel("trace");
-    const logger = getLogger("fallback");
+    sut.setLogLevel("trace");
+    const logger = sut.getLogger("fallback");
     logger.trace("using log");
 
     expect(logSpy).toHaveBeenCalledWith("(fallback) TRACE:", "using log");
@@ -216,7 +241,7 @@ describe("ログ出力の挙動", () => {
     const captured: unknown[] = [];
     globalThis.console = {} as Console;
 
-    const logger = getLogger("silent");
+    const logger = sut.getLogger("silent");
     expect(() => logger.error("no-op", captured)).not.toThrow();
     expect(captured).toEqual([]);
   });
@@ -224,29 +249,33 @@ describe("ログ出力の挙動", () => {
 
 describe("設定のバリデーション", () => {
   it("無効な名前の個別設定更新は拒否する", () => {
-    expect(() => setLoggerConfig("", { level: "error" })).toThrow("logger name must be a non-empty string");
+    expect(() => sut.setLoggerConfig("", { level: "error" })).toThrow("logger name must be a non-empty string");
+  });
+  it("無効な名前の参照は拒否する", () => {
+    expect(() => sut.getLoggerOverrides("")).toThrow("logger name must be a non-empty string");
+    expect(() => sut.getEffectiveLoggerConfig(" ")).toThrow("logger name must be a non-empty string");
   });
 
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
-    const logger = getLogger("placeholders");
+    const logger = sut.getLogger("placeholders");
     const infoSpy = vi.spyOn(console, "info");
 
-    setDefaultConfig({ placeholders: { "%new": "value" }, prefixFormat: "[%new][%logLevel]" });
+    sut.setDefaultConfig({ placeholders: { "%new": "value" }, prefixFormat: "[%new][%logLevel]" });
     logger.info("after replace");
 
     expect(infoSpy).toHaveBeenCalledWith("[value][INFO]", "after replace");
-    expect(getDefaultConfig().placeholders).toEqual({ "%new": "value" });
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": "value" });
   });
 
   it("後からデフォルト値を変更した場合も個別設定しているものは変更しない", () => {
     const infoSpy = vi.spyOn(console, "info");
-    const logger = getLogger("sticky");
+    const logger = sut.getLogger("sticky");
 
-    setLoggerConfig("sticky", { level: "debug", prefixFormat: "<stick %loggerName %logLevel>" });
+    sut.setLoggerConfig("sticky", { level: "debug", prefixFormat: "<stick %loggerName %logLevel>" });
 
     logger.info("before default change");
 
-    setDefaultConfig({
+    sut.setDefaultConfig({
       level: "error",
       prefixFormat: "[global %loggerName %logLevel]",
       placeholders: { "%new": "added" },
@@ -256,7 +285,7 @@ describe("設定のバリデーション", () => {
 
     expect(infoSpy).toHaveBeenNthCalledWith(1, "<stick sticky INFO>", "before default change");
     expect(infoSpy).toHaveBeenNthCalledWith(2, "<stick sticky INFO>", "after default change");
-    expect(getPerLoggerConfig().sticky?.prefixFormat).toBe("<stick %loggerName %logLevel>");
-    expect(getPerLoggerConfig().sticky?.level).toBe("debug");
+    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel>");
+    expect(sut.getLoggerOverrides("sticky").level).toBe("debug");
   });
 });
