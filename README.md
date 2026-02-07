@@ -71,7 +71,7 @@ Placeholders:
 - Unknown placeholders remain as-is
 - Use `%%` to output a literal `%`
 - Placeholder functions are evaluated at log time
-- Per-logger placeholders are merged over defaults
+- Per-logger placeholders are merged with defaults, with per-logger values taking precedence on key conflicts
 
 Prefix behavior:
 
@@ -138,8 +138,10 @@ setLoggerLevel(name: string, level: LogLevel): void;
 
 // Get current defaults.
 getDefaultConfig(): Readonly<LoggerConfig>;
-// Get per-logger overrides.
-getPerLoggerConfig(): Readonly<Record<string, PerLoggerConfig>>;
+// Get per-logger overrides for a logger.
+getLoggerOverrides(name: string): Readonly<PerLoggerConfig>;
+// Get resolved config (defaults + overrides) for a logger.
+getEffectiveLoggerConfig(name: string): Readonly<LoggerConfig>;
 // Get library defaults (initial baseline).
 getLibraryDefaults(): Readonly<LoggerConfig>;
 ```

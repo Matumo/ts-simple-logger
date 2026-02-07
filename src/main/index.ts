@@ -238,8 +238,20 @@ export function getLogger(name: string): Logger {
 export function getDefaultConfig(): Readonly<LoggerConfigFields> {
   return getState().defaults;
 }
-export function getPerLoggerConfig(): Readonly<Record<string, PerLoggerConfig>> {
-  return getState().perLogger;
+export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
+  const state = getState();
+  const key = name?.trim();
+  if (!key) {
+    throw new Error("logger name must be a non-empty string");
+  }
+  return state.perLogger[key] ?? {};
+}
+export function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFields> {
+  const key = name?.trim();
+  if (!key) {
+    throw new Error("logger name must be a non-empty string");
+  }
+  return resolveEffectiveConfig(key);
 }
 export function getLibraryDefaults(): Readonly<LoggerConfigFields> {
   return getState().libraryDefaults;
