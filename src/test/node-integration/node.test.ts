@@ -48,7 +48,6 @@ describe("Node統合テスト", () => {
   let restoreConsole: () => void;
 
   beforeEach(() => {
-    globalThis.__MYLOGGER_STATE__ = undefined;
     const spies = createConsoleSpies();
     outputs = spies.outputs;
     restoreConsole = spies.restore;
