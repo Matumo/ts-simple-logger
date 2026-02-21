@@ -45,21 +45,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable \
-  && corepack prepare pnpm@10.27.0 --activate
-
-RUN cat <<'EOF' >/etc/profile.d/host-ip-playwright.sh
-#!/usr/bin/env bash
-# Resolve host.docker.internal to an IP and expose helper env vars.
-if command -v getent >/dev/null 2>&1; then
-  host_ip="$(getent hosts host.docker.internal 2>/dev/null | awk '{print $1}' | tail -n 1)"
-  if [ -n "$host_ip" ]; then
-    export HOST_IP="$host_ip"
-    if [ -z "$PLAYWRIGHT_REMOTE_CHROME_WS_ENDPOINT" ]; then
-      export PLAYWRIGHT_REMOTE_CHROME_WS_ENDPOINT="http://${HOST_IP}:9222/"
-    fi
-  fi
-fi
-EOF
-RUN chmod 0755 /etc/profile.d/host-ip-playwright.sh
+  && corepack prepare pnpm@10.30.1 --activate
 
 USER ${USERNAME}
