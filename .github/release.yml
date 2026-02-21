@@ -9,6 +9,10 @@ changelog:
         - feature
         - enhancement
 
+    - title: 脆弱性対応
+      labels:
+        - security
+
     - title: バグ修正
       labels:
         - bug
