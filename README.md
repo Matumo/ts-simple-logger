@@ -34,6 +34,7 @@ setDefaultConfig({
     "%time": () => new Date().toISOString(),
   },
   prefixFormat: "[%appName] %time (%loggerName) %logLevel:",
+  // Built-in placeholders: `%loggerName`, `%logLevel`.
   // Use `%%` in prefixFormat for a literal `%`.
   // Placeholder functions run at log time and must return strings.
 });
