@@ -5,6 +5,16 @@ import type { LogLevel } from "@main/index";
 const originalConsole = globalThis.console;
 let sut: typeof import("@main/index");
 
+type DeferredPrefixArg = {
+  toString: () => string;
+};
+
+type CallSpy = {
+  mock: {
+    calls: unknown[][];
+  };
+};
+
 function restoreConsole(): void {
   globalThis.console = originalConsole;
   console.trace = originalConsole.trace;
@@ -13,6 +23,39 @@ function restoreConsole(): void {
   console.warn = originalConsole.warn;
   console.error = originalConsole.error;
   console.log = originalConsole.log;
+}
+
+function stubConsoleMethod(method: "trace" | "debug" | "info" | "warn" | "error"): MockInstance {
+  return vi.spyOn(console, method).mockImplementation(() => {});
+}
+
+function getDeferredPrefixArg(spy: CallSpy, callIndex: number, ...expectedArgs: unknown[]): DeferredPrefixArg {
+  const call = spy.mock.calls[callIndex];
+  if (!call) {
+    throw new Error(`expected console call #${callIndex + 1}`);
+  }
+
+  expect(call[0]).toBe("%s");
+  expect(call.slice(2)).toEqual(expectedArgs);
+
+  const prefixArg = call[1];
+  if (typeof prefixArg !== "object" || prefixArg === null) {
+    throw new Error("expected deferred prefix object");
+  }
+
+  expect(Object.hasOwn(prefixArg, "toString")).toBe(true);
+  expect(typeof (prefixArg as DeferredPrefixArg).toString).toBe("function");
+
+  return prefixArg as DeferredPrefixArg;
+}
+
+function expectPrefixedConsoleCall(
+  spy: CallSpy,
+  callIndex: number,
+  expectedPrefix: string,
+  ...expectedArgs: unknown[]
+): void {
+  expect(getDeferredPrefixArg(spy, callIndex, ...expectedArgs).toString()).toBe(expectedPrefix);
 }
 
 beforeEach(async () => {
@@ -91,14 +134,14 @@ describe("ログ出力の挙動", () => {
     });
     sut.setLoggerConfig("svc", { placeholders: { "%custom": "override" } });
 
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("svc");
     logger.info("payload");
 
-    expect(infoSpy).toHaveBeenCalledWith("[%][svc][INFO][root][override][%missing]", "payload");
+    expectPrefixedConsoleCall(infoSpy, 0, "[%][svc][INFO][root][override][%missing]", "payload");
   });
 
-  it("プレースホルダー関数はログ出力時に評価される", () => {
+  it("プレースホルダー関数は遅延評価用の引数として渡され、評価結果も正しい", () => {
     let counter = 0;
     const counterFn = vi.fn(() => `tick-${++counter}`);
 
@@ -107,16 +150,19 @@ describe("ログ出力の挙動", () => {
       placeholders: { "%counter": counterFn },
     });
 
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("dynamic");
 
-    expect(counterFn).not.toHaveBeenCalled();
     logger.info("a");
     logger.info("b");
 
+    expect(counterFn).not.toHaveBeenCalled();
+    const firstPrefixArg = getDeferredPrefixArg(infoSpy, 0, "a");
+    const secondPrefixArg = getDeferredPrefixArg(infoSpy, 1, "b");
+
+    expect(firstPrefixArg.toString()).toBe("[tick-1]");
+    expect(secondPrefixArg.toString()).toBe("[tick-2]");
     expect(counterFn).toHaveBeenCalledTimes(2);
-    expect(infoSpy).toHaveBeenNthCalledWith(1, "[tick-1]", "a");
-    expect(infoSpy).toHaveBeenNthCalledWith(2, "[tick-2]", "b");
   });
 
   it("プレフィックス無効時はラベルを付けずメッセージのみ出力する", () => {
@@ -150,18 +196,20 @@ describe("ログ出力の挙動", () => {
     };
 
     const expectCall = (spy: MockInstance, logLevel: LogLevel, baseLevel: LogLevel, ...args: unknown[]): void => {
-      if (LEVEL_ORDER[baseLevel] <= LEVEL_ORDER[logLevel]) expect(spy).toHaveBeenCalledWith(...args);
+      if (LEVEL_ORDER[baseLevel] <= LEVEL_ORDER[logLevel]) {
+        expectPrefixedConsoleCall(spy, 0, String(args[0]), ...args.slice(1));
+      }
       else expect(spy).not.toHaveBeenCalled();
     };
 
     const levels: LogLevel[] = ["trace", "debug", "info", "warn", "error", "silent"];
 
     for (const baseLevel of levels) {
-      const traceSpy = vi.spyOn(console, "trace");
-      const debugSpy = vi.spyOn(console, "debug");
-      const infoSpy = vi.spyOn(console, "info");
-      const warnSpy = vi.spyOn(console, "warn");
-      const errorSpy = vi.spyOn(console, "error");
+      const traceSpy = stubConsoleMethod("trace");
+      const debugSpy = stubConsoleMethod("debug");
+      const infoSpy = stubConsoleMethod("info");
+      const warnSpy = stubConsoleMethod("warn");
+      const errorSpy = stubConsoleMethod("error");
 
       sut.setLogLevel(baseLevel);
       const logger = sut.getLogger(`LogLevel-${baseLevel}`);
@@ -186,13 +234,13 @@ describe("ログ出力の挙動", () => {
   });
 
   it("ロガー個別設定の更新を再適用する", () => {
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("custom");
 
     sut.setLoggerConfig("custom", { prefixFormat: "<%loggerName|%logLevel>" });
     logger.info("configured");
 
-    expect(infoSpy).toHaveBeenCalledWith("<custom|INFO>", "configured");
+    expectPrefixedConsoleCall(infoSpy, 0, "<custom|INFO>", "configured");
     expect(sut.getLoggerOverrides("custom").prefixFormat).toBe("<%loggerName|%logLevel>");
   });
 
@@ -200,28 +248,28 @@ describe("ログ出力の挙動", () => {
     sut.setLogLevel("error");
     sut.setLoggerLevel("override-level", "debug");
 
-    const debugSpy = vi.spyOn(console, "debug");
-    const warnSpy = vi.spyOn(console, "warn");
+    const debugSpy = stubConsoleMethod("debug");
+    const warnSpy = stubConsoleMethod("warn");
     const logger = sut.getLogger("override-level");
 
     logger.debug("allowed");
     logger.warn("also allowed");
 
-    expect(debugSpy).toHaveBeenCalledWith("(override-level) DEBUG:", "allowed");
-    expect(warnSpy).toHaveBeenCalledWith("(override-level) WARN:", "also allowed");
+    expectPrefixedConsoleCall(debugSpy, 0, "(override-level) DEBUG:", "allowed");
+    expectPrefixedConsoleCall(warnSpy, 0, "(override-level) WARN:", "also allowed");
   });
 
   it("エラーレベル時は warn を無効化し error は通す", () => {
     sut.setLogLevel("error");
-    const warnSpy = vi.spyOn(console, "warn");
-    const errorSpy = vi.spyOn(console, "error");
+    const warnSpy = stubConsoleMethod("warn");
+    const errorSpy = stubConsoleMethod("error");
 
     const logger = sut.getLogger("errors-only");
     logger.warn("skip");
     logger.error("recorded");
 
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(errorSpy).toHaveBeenCalledWith("(errors-only) ERROR:", "recorded");
+    expectPrefixedConsoleCall(errorSpy, 0, "(errors-only) ERROR:", "recorded");
   });
 
   it("特定の console メソッド未定義時は console.log にフォールバックする", () => {
@@ -234,7 +282,7 @@ describe("ログ出力の挙動", () => {
     const logger = sut.getLogger("fallback");
     logger.trace("using log");
 
-    expect(logSpy).toHaveBeenCalledWith("(fallback) TRACE:", "using log");
+    expectPrefixedConsoleCall(logSpy, 0, "(fallback) TRACE:", "using log");
   });
 
   it("console 未定義時は noop で落とさず動作する", () => {
@@ -258,34 +306,50 @@ describe("設定のバリデーション", () => {
 
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
     const logger = sut.getLogger("placeholders");
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
+    const valueFn = vi.fn(() => "value");
 
-    sut.setDefaultConfig({ placeholders: { "%new": "value" }, prefixFormat: "[%new][%logLevel]" });
+    sut.setDefaultConfig({
+      placeholders: { "%new": valueFn },
+      prefixFormat: "[%new][%logLevel]",
+    });
     logger.info("after replace");
 
-    expect(infoSpy).toHaveBeenCalledWith("[value][INFO]", "after replace");
-    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": "value" });
+    expect(valueFn).not.toHaveBeenCalled();
+    expectPrefixedConsoleCall(infoSpy, 0, "[value][INFO]", "after replace");
+    expect(valueFn).toHaveBeenCalledTimes(1);
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": valueFn });
   });
 
   it("後からデフォルト値を変更した場合も個別設定しているものは変更しない", () => {
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("sticky");
+    const localTag = vi.fn(() => "local");
+    const globalTag = vi.fn(() => "global");
 
-    sut.setLoggerConfig("sticky", { level: "debug", prefixFormat: "<stick %loggerName %logLevel>" });
+    sut.setLoggerConfig("sticky", {
+      level: "debug",
+      prefixFormat: "<stick %loggerName %logLevel %tag>",
+      placeholders: { "%tag": localTag },
+    });
 
     logger.info("before default change");
 
     sut.setDefaultConfig({
       level: "error",
-      prefixFormat: "[global %loggerName %logLevel]",
-      placeholders: { "%new": "added" },
+      prefixFormat: "[global %loggerName %logLevel %tag]",
+      placeholders: { "%new": "added", "%tag": globalTag },
     });
 
     logger.info("after default change");
 
-    expect(infoSpy).toHaveBeenNthCalledWith(1, "<stick sticky INFO>", "before default change");
-    expect(infoSpy).toHaveBeenNthCalledWith(2, "<stick sticky INFO>", "after default change");
-    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel>");
+    expect(localTag).not.toHaveBeenCalled();
+    expectPrefixedConsoleCall(infoSpy, 0, "<stick sticky INFO local>", "before default change");
+    expectPrefixedConsoleCall(infoSpy, 1, "<stick sticky INFO local>", "after default change");
+    expect(localTag).toHaveBeenCalledTimes(2);
+    expect(globalTag).not.toHaveBeenCalled();
+    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel %tag>");
     expect(sut.getLoggerOverrides("sticky").level).toBe("debug");
+    expect(sut.getLoggerOverrides("sticky").placeholders).toEqual({ "%tag": localTag });
   });
 });
