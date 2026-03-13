@@ -50,7 +50,7 @@
     "test:integration:node": "pnpm run build && pnpm run pack && vitest run --config vitest.node.config.ts",
     "test:integration:browser": "pnpm run build && playwright test",
     "all": "pnpm run clean && pnpm run check && pnpm run build && pnpm run test",
-    "prepack": "npm run build"
+    "prepack": "pnpm run build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
