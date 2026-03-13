@@ -41,7 +41,7 @@
     "build:types": "tsc --emitDeclarationOnly -p ./tsconfig.json --outDir ./dist",
     "pack:dist": "mkdir -p dist-pack && pnpm pack --pack-destination ./dist-pack",
     "pack": "pnpm run clean:pack && pnpm run pack:dist && sha256sum dist-pack/*.tgz",
-    "demo:serve": "tsx ./src/test/browser-integration/static-server.ts",
+    "demo:serve": "pnpm run build && tsx ./src/test/browser-integration/static-server.ts",
     "test": "pnpm run clean:test && pnpm run test:unit:coverage && pnpm run test:integration",
     "test:install": "playwright install --with-deps",
     "test:unit": "vitest run --config vitest.unit.config.ts",

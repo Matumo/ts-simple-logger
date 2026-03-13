@@ -28,6 +28,14 @@ function createStaticAssetMap(rootDir: string): Map<string, StaticAsset> {
     filePath: path.join(absoluteRoot, "dist/index.iife.js"),
     contentType: "application/javascript; charset=utf-8"
   };
+  const iifeMapAsset: StaticAsset = {
+    filePath: path.join(absoluteRoot, "dist/index.iife.js.map"),
+    contentType: "application/json; charset=utf-8"
+  };
+  const moduleMapAsset: StaticAsset = {
+    filePath: path.join(absoluteRoot, "dist/index.js.map"),
+    contentType: "application/json; charset=utf-8"
+  };
 
   const register = (routes: string[], asset: StaticAsset) => {
     routes.forEach((route) => assetMap.set(route, asset));
@@ -36,6 +44,8 @@ function createStaticAssetMap(rootDir: string): Map<string, StaticAsset> {
   register(["/", "/demo", "/demo.html"], htmlAsset);
   register(["/index.js"], moduleAsset);
   register(["/index.iife.js"], iifeAsset);
+  register(["/index.iife.js.map"], iifeMapAsset);
+  register(["/index.js.map"], moduleMapAsset);
 
   return assetMap;
 }
