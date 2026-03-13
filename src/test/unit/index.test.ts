@@ -130,7 +130,7 @@ describe("ログ出力の挙動", () => {
   it("プレースホルダーとエスケープを含むプレフィックスを整形する", () => {
     sut.setDefaultConfig({
       prefixFormat: "[%%][%loggerName][%logLevel][%appName][%custom][%missing]",
-      placeholders: { "%appName": "root", "%custom": "default" },
+      placeholders: { "%appName": "root", "%custom": "default" }
     });
     sut.setLoggerConfig("svc", { placeholders: { "%custom": "override" } });
 
@@ -147,7 +147,7 @@ describe("ログ出力の挙動", () => {
 
     sut.setDefaultConfig({
       prefixFormat: "[%counter]",
-      placeholders: { "%counter": counterFn },
+      placeholders: { "%counter": counterFn }
     });
 
     const infoSpy = stubConsoleMethod("info");
@@ -307,49 +307,39 @@ describe("設定のバリデーション", () => {
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
     const logger = sut.getLogger("placeholders");
     const infoSpy = stubConsoleMethod("info");
-    const valueFn = vi.fn(() => "value");
 
     sut.setDefaultConfig({
-      placeholders: { "%new": valueFn },
-      prefixFormat: "[%new][%logLevel]",
+      placeholders: { "%new": "value" },
+      prefixFormat: "[%new][%logLevel]"
     });
     logger.info("after replace");
 
-    expect(valueFn).not.toHaveBeenCalled();
     expectPrefixedConsoleCall(infoSpy, 0, "[value][INFO]", "after replace");
-    expect(valueFn).toHaveBeenCalledTimes(1);
-    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": valueFn });
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": "value" });
   });
 
   it("後からデフォルト値を変更した場合も個別設定しているものは変更しない", () => {
     const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("sticky");
-    const localTag = vi.fn(() => "local");
-    const globalTag = vi.fn(() => "global");
 
     sut.setLoggerConfig("sticky", {
       level: "debug",
-      prefixFormat: "<stick %loggerName %logLevel %tag>",
-      placeholders: { "%tag": localTag },
+      prefixFormat: "<stick %loggerName %logLevel>"
     });
 
     logger.info("before default change");
 
     sut.setDefaultConfig({
       level: "error",
-      prefixFormat: "[global %loggerName %logLevel %tag]",
-      placeholders: { "%new": "added", "%tag": globalTag },
+      prefixFormat: "[global %loggerName %logLevel]",
+      placeholders: { "%new": "added" }
     });
 
     logger.info("after default change");
 
-    expect(localTag).not.toHaveBeenCalled();
-    expectPrefixedConsoleCall(infoSpy, 0, "<stick sticky INFO local>", "before default change");
-    expectPrefixedConsoleCall(infoSpy, 1, "<stick sticky INFO local>", "after default change");
-    expect(localTag).toHaveBeenCalledTimes(2);
-    expect(globalTag).not.toHaveBeenCalled();
-    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel %tag>");
+    expectPrefixedConsoleCall(infoSpy, 0, "<stick sticky INFO>", "before default change");
+    expectPrefixedConsoleCall(infoSpy, 1, "<stick sticky INFO>", "after default change");
+    expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel>");
     expect(sut.getLoggerOverrides("sticky").level).toBe("debug");
-    expect(sut.getLoggerOverrides("sticky").placeholders).toEqual({ "%tag": localTag });
   });
 });

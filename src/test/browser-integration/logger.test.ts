@@ -24,13 +24,10 @@ test.describe("ブラウザ統合テスト", () => {
       const methods = ["log", "info", "warn", "error", "debug", "trace"] as const;
 
       for (const method of methods) {
-        const original = console[method];
-        if (typeof original !== "function") continue;
+        if (typeof console[method] !== "function") continue;
 
-        const boundOriginal = original.bind(console);
-        console[method] = (...args: Parameters<typeof boundOriginal>) => {
+        console[method] = (...args: unknown[]) => {
           logs.push({ method, text: args.map(String).join(" ") });
-          return boundOriginal(...args);
         };
       }
 
@@ -51,7 +48,7 @@ test.describe("ブラウザ統合テスト", () => {
           () => (globalThis as typeof globalThis & { __PLAYWRIGHT_LOGS__?: unknown[] }).__PLAYWRIGHT_LOGS__?.length ?? 0
         )
       )
-      .toBeGreaterThanOrEqual(8);
+      .toBeGreaterThanOrEqual(10);
 
     const logs = await page.evaluate(
       () => (globalThis as typeof globalThis & { __PLAYWRIGHT_LOGS__?: { text: string }[] }).__PLAYWRIGHT_LOGS__ ?? []
@@ -59,9 +56,10 @@ test.describe("ブラウザ統合テスト", () => {
 
     console.log("ブラウザログ:", logs.map((entry) => entry.text));
 
-    expect(logs.some((entry) => entry.text.includes("[module][module-demo] TRACE"))).toBeTruthy();
-    expect(logs.some((entry) => entry.text.includes("[module][module-network] WARN"))).toBeTruthy();
-    expect(logs.some((entry) => entry.text.includes("[iife][iife-demo] INFO"))).toBeTruthy();
-    expect(logs.some((entry) => entry.text.includes("[iife][iife-ui] ERROR"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-demo] TRACE: [module-"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-network] WARN: [module-"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-demo] INFO: [iife-"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-demo] WARN: [iife-"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-ui] ERROR: [iife-"))).toBeTruthy();
   });
 });
