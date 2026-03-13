@@ -96,20 +96,28 @@
   <script type="module">
     import {
       getLogger,
+      setDefaultConfig,
       setLoggerConfig
     } from "./index.js";
+
+    let moduleTick = 0;
+    setDefaultConfig({
+      level: "trace",
+      prefixEnabled: true,
+      prefixFormat: "[module][%app][%loggerName] %logLevel: [%tick]",
+      placeholders: {
+        "%app": "browser-app",
+        "%tick": () => `module-${++moduleTick}`
+      }
+    });
 
     const moduleLogger = getLogger("module-demo");
     const moduleNetworkLogger = getLogger("module-network");
     setLoggerConfig("module-demo", {
-      level: "trace",
-      prefixEnabled: true,
-      prefixFormat: "[module][%loggerName] %logLevel:"
+      level: "trace"
     });
     setLoggerConfig("module-network", {
-      level: "warn",
-      prefixEnabled: true,
-      prefixFormat: "[module][%loggerName] %logLevel:"
+      level: "warn"
     });
 
     const moduleButton = document.querySelector("#module-run");
@@ -133,10 +141,15 @@
         setLoggerLevel: setLoggerLevelIife
       } = TsSimpleLogger;
 
+      let iifeTick = 0;
       setDefaultConfigIife({
         level: "debug",
         prefixEnabled: true,
-        prefixFormat: "[iife][%loggerName] %logLevel:"
+        prefixFormat: "[iife][%app][%loggerName] %logLevel: [%tick]",
+        placeholders: {
+          "%app": "browser-iife",
+          "%tick": () => `iife-${++iifeTick}`
+        }
       });
 
       const iifeLogger = getLoggerIife("iife-demo");
