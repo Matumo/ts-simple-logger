@@ -244,7 +244,7 @@ describe("ログ出力の挙動", () => {
     expect(sut.getLoggerOverrides("custom").prefixFormat).toBe("<%loggerName|%logLevel>");
   });
 
-  it("setLoggerLevel でデフォルトよりも緩いレベルに個別上書きできる", () => {
+  it("setLoggerLevelでデフォルトよりも緩いレベルに個別上書きできる", () => {
     sut.setLogLevel("error");
     sut.setLoggerLevel("override-level", "debug");
 
@@ -259,7 +259,7 @@ describe("ログ出力の挙動", () => {
     expectPrefixedConsoleCall(warnSpy, 0, "(override-level) WARN:", "also allowed");
   });
 
-  it("エラーレベル時は warn を無効化し error は通す", () => {
+  it("エラーレベル時はwarnを無効化しerrorは通す", () => {
     sut.setLogLevel("error");
     const warnSpy = stubConsoleMethod("warn");
     const errorSpy = stubConsoleMethod("error");
@@ -272,7 +272,7 @@ describe("ログ出力の挙動", () => {
     expectPrefixedConsoleCall(errorSpy, 0, "(errors-only) ERROR:", "recorded");
   });
 
-  it("特定の console メソッド未定義時は console.log にフォールバックする", () => {
+  it("特定のconsoleメソッド未定義時はconsole.logにフォールバックする", () => {
     const logSpy = vi.fn();
     // @ts-expect-error override console for test
     console.trace = undefined;
@@ -285,7 +285,7 @@ describe("ログ出力の挙動", () => {
     expectPrefixedConsoleCall(logSpy, 0, "(fallback) TRACE:", "using log");
   });
 
-  it("console 未定義時は noop で落とさず動作する", () => {
+  it("console未定義時はnoopで落とさず動作する", () => {
     const captured: unknown[] = [];
     globalThis.console = {} as Console;
 
@@ -304,18 +304,18 @@ describe("設定のバリデーション", () => {
     expect(() => sut.getEffectiveLoggerConfig(" ")).toThrow("logger name must be a non-empty string");
   });
 
-  it("setDefaultConfig に不正な level を渡すと拒否する", () => {
+  it("setDefaultConfigに不正なlevelを渡すと拒否する", () => {
     expect(() => sut.setDefaultConfig({ level: "verbose" as LogLevel })).toThrow("invalid log level");
     expect(() => sut.setDefaultConfig({ level: "" as LogLevel })).toThrow("invalid log level");
     expect(sut.getDefaultConfig().level).toBe("info");
   });
 
-  it("setLoggerConfig に不正な level を渡すと拒否する", () => {
+  it("setLoggerConfigに不正なlevelを渡すと拒否する", () => {
     expect(() => sut.setLoggerConfig("test-invalid", { level: "verbose" as LogLevel })).toThrow("invalid log level");
     expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
   });
 
-  it("不正な level で throw しても既存設定は変更されない", () => {
+  it("不正なlevelでthrowしても既存設定は変更されない", () => {
     sut.setDefaultConfig({ level: "debug" });
     expect(() => sut.setDefaultConfig({ level: "nope" as LogLevel })).toThrow("invalid log level");
     expect(sut.getDefaultConfig().level).toBe("debug");

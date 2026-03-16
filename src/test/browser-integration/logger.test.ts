@@ -58,7 +58,7 @@ test.describe("ブラウザ統合テスト", () => {
 
     expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-demo] TRACE: [module-"))).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-network] WARN: [module-"))).toBeTruthy();
-    
+
     // モジュール(ESM)側 エッジケース検証
     expect(logs.some((entry) => entry.text === "module edge no prefix")).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("module edge hidden warn"))).toBeFalsy();
