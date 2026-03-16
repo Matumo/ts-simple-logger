@@ -17,7 +17,7 @@ updates:
   - package-ecosystem: "github-actions"
     directories:
       - "/"
-      - "/.github/actions"
+      - "/.github/actions/project-setup"
     target-branch: "develop"
     schedule:
       interval: daily
