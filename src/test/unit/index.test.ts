@@ -304,6 +304,23 @@ describe("設定のバリデーション", () => {
     expect(() => sut.getEffectiveLoggerConfig(" ")).toThrow("logger name must be a non-empty string");
   });
 
+  it("setDefaultConfig に不正な level を渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig({ level: "verbose" as LogLevel })).toThrow("invalid log level");
+    expect(() => sut.setDefaultConfig({ level: "" as LogLevel })).toThrow("invalid log level");
+    expect(sut.getDefaultConfig().level).toBe("info");
+  });
+
+  it("setLoggerConfig に不正な level を渡すと拒否する", () => {
+    expect(() => sut.setLoggerConfig("test-invalid", { level: "verbose" as LogLevel })).toThrow("invalid log level");
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
+  });
+
+  it("不正な level で throw しても既存設定は変更されない", () => {
+    sut.setDefaultConfig({ level: "debug" });
+    expect(() => sut.setDefaultConfig({ level: "nope" as LogLevel })).toThrow("invalid log level");
+    expect(sut.getDefaultConfig().level).toBe("debug");
+  });
+
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
     const logger = sut.getLogger("placeholders");
     const infoSpy = stubConsoleMethod("info");
