@@ -17,6 +17,7 @@ RUN apt-get update && \
     locales \
     sudo \
     tzdata \
+    wget \
     zip \
     libatomic1 \
     openjdk-25-jdk \
@@ -44,7 +45,10 @@ RUN apt-get update && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable \
-  && corepack prepare pnpm@10.30.1 --activate
+# pnpm
+RUN corepack enable && \
+    corepack prepare pnpm@10.32.1 --activate && \
+    pnpm completion bash > ~/completion-for-pnpm.bash && \
+    echo 'source ~/completion-for-pnpm.bash' >> ~/.bashrc
 
 USER ${USERNAME}
