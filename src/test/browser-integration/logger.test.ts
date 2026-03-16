@@ -58,8 +58,21 @@ test.describe("ブラウザ統合テスト", () => {
 
     expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-demo] TRACE: [module-"))).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("[module][browser-app][module-network] WARN: [module-"))).toBeTruthy();
+    
+    // モジュール(ESM)側 エッジケース検証
+    expect(logs.some((entry) => entry.text === "module edge no prefix")).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("module edge hidden warn"))).toBeFalsy();
+    expect(logs.some((entry) => entry.text.includes("[module-edge-override] ERROR: [module-") && entry.text.includes("module edge error"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid config: invalid log level: \"invalid_level_from_browser\""))).toBeTruthy();
+
     expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-demo] INFO: [iife-"))).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-demo] WARN: [iife-"))).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-ui] ERROR: [iife-"))).toBeTruthy();
+
+    // IIFE側 エッジケース検証
+    expect(logs.some((entry) => entry.text === "iife edge no prefix")).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("iife edge hidden warn"))).toBeFalsy();
+    expect(logs.some((entry) => entry.text.includes("[iife-edge-override] ERROR: [iife-") && entry.text.includes("iife edge error"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid config: invalid log level: \"invalid_iife_level\""))).toBeTruthy();
   });
 });
