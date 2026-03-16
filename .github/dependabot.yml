@@ -5,6 +5,10 @@ updates:
     target-branch: "develop"
     schedule:
       interval: daily
+  - package-ecosystem: docker
+    directory: "/.devcontainer"
+    schedule:
+      interval: "daily"
   - package-ecosystem: "npm"
     directory: "/"
     target-branch: "develop"
