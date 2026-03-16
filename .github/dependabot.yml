@@ -15,7 +15,8 @@ updates:
         patterns:
           - "*" # 全ての依存関係
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/.github/**/*"
     target-branch: "develop"
     schedule:
       interval: daily
