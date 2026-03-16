@@ -85,7 +85,7 @@ describe("Node統合テスト", () => {
     setDefaultConfig({ prefixEnabled: false });
 
     noPrefixLogger.info("raw line");
-    expect(outputs.some((line) => line === "info raw line")).toBeTruthy();
+    expect(outputs.includes("info raw line")).toBeTruthy();
 
     // 3: グローバルレベル vs 個別ロガーの上書き
     setDefaultConfig({ level: "error", prefixEnabled: true });
