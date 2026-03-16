@@ -16,8 +16,7 @@ updates:
           - "*" # 全ての依存関係
   - package-ecosystem: "github-actions"
     directories:
-      - "/"
-      - "/.github/actions/project-setup"
+      - "/.github/**/*"
     target-branch: "develop"
     schedule:
       interval: daily
