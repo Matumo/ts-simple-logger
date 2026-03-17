@@ -16,7 +16,7 @@ runs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
-    - uses: pnpm/action-setup@v4
+    - uses: pnpm/action-setup@v5
       name: Install pnpm
     - name: Setup pnpm cache
       id: pnpm_store
