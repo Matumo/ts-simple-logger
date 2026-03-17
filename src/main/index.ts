@@ -20,6 +20,14 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
   silent: 100,
 };
 
+const VALID_LEVELS = new Set<string>(Object.keys(LEVEL_ORDER));
+
+function validateLevel(level: unknown): void {
+  if (typeof level !== "string" || !VALID_LEVELS.has(level)) {
+    throw new Error(`invalid log level: ${JSON.stringify(level)}`);
+  }
+}
+
 type LoggerConfigFields = {
   level: LogLevel;
   prefixEnabled: boolean;
@@ -45,7 +53,7 @@ type State = {
   loggers: Map<string, Logger>;
 };
 
-function noop(): void {}
+function noop(): void { }
 
 function getConsoleMethod(
   method: "trace" | "debug" | "info" | "warn" | "error",
@@ -167,7 +175,10 @@ function reapplyAllLoggers(): void {
 export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
   const state = getState();
 
-  if (typeof partial.level === "string") state.defaults.level = partial.level;
+  if (partial.level !== undefined) {
+    validateLevel(partial.level);
+    state.defaults.level = partial.level;
+  }
   if (typeof partial.prefixEnabled === "boolean") state.defaults.prefixEnabled = partial.prefixEnabled;
   if (typeof partial.prefixFormat === "string") state.defaults.prefixFormat = partial.prefixFormat;
   if (partial.placeholders && typeof partial.placeholders === "object") {
@@ -185,6 +196,10 @@ export function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
   const key = name?.trim();
   if (!key) {
     throw new Error("logger name must be a non-empty string");
+  }
+
+  if (partial.level !== undefined) {
+    validateLevel(partial.level);
   }
 
   const current = state.perLogger[key] ?? {};

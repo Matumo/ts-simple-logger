@@ -128,12 +128,29 @@
       moduleNetworkLogger.info("network info (hidden because level=warn)");
       moduleNetworkLogger.warn("network warning");
       moduleNetworkLogger.error("network error", { status: 500 });
+      
+      // エッジケースの出力
+      const edgeNoPrefix = getLogger("module-no-prefix");
+      setLoggerConfig("module-no-prefix", { prefixEnabled: false });
+      edgeNoPrefix.info("module edge no prefix");
+
+      const edgeOverride = getLogger("module-edge-override");
+      setLoggerConfig("module-edge-override", { level: "error" });
+      edgeOverride.warn("module edge hidden warn");
+      edgeOverride.error("module edge error");
+
+      // 不正なログレベルのテスト
+      try {
+        setLoggerConfig("module-invalid", { level: "invalid_level_from_browser" });
+      } catch (e) {
+        moduleLogger.error(`caught invalid config: ${e.message}`);
+      }
     });
   </script>
 
   <script src="./index.iife.js"></script>
   <script>
-    // Delay IIFE setup until after modules finish configuring defaults.
+    // Module側の非同期セットアップ完了を待つため、load イベントで遅延実行する
     window.addEventListener("load", () => {
       const {
         getLogger: getLoggerIife,
@@ -163,6 +180,23 @@
         iifeLogger.warn("iife warn", { user: "alice" });
         iifeUiLogger.info("button clicked");
         iifeUiLogger.error("ui error", { message: "Example error" });
+
+        // エッジケースの出力
+        const edgeNoPrefix = getLoggerIife("iife-no-prefix");
+        TsSimpleLogger.setLoggerConfig("iife-no-prefix", { prefixEnabled: false });
+        edgeNoPrefix.info("iife edge no prefix");
+
+        const edgeOverride = getLoggerIife("iife-edge-override");
+        setLoggerLevelIife("iife-edge-override", "error");
+        edgeOverride.warn("iife edge hidden warn");
+        edgeOverride.error("iife edge error");
+
+        // 不正なログレベルのテスト
+        try {
+          setLoggerLevelIife("iife-invalid", "invalid_iife_level");
+        } catch (e) {
+          iifeLogger.error(`caught invalid config: ${e.message}`);
+        }
       });
     });
   </script>

@@ -22,7 +22,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
 
-describe("npm install 動作確認", () => {
+describe("npm install動作確認", () => {
   let tarballPath: string;
   let workRoot: string;
 
