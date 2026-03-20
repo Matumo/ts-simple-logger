@@ -59,7 +59,15 @@ describe("Node統合テスト", () => {
 
   const runBundleTest = async (loadModule: () => Promise<DistModule>) => {
     const mod: DistModule = await loadModule();
-    const { getLogger, setDefaultConfig, setLoggerConfig, setLoggerLevel } = mod;
+    const {
+      getLogger,
+      setDefaultConfig,
+      setLoggerConfig,
+      setLoggerLevel,
+      getDefaultConfig,
+      getLoggerOverrides,
+      getLibraryDefaults
+    } = mod;
 
     let tick = 0;
     const format = "[node %%][%app][%loggerName][%logLevel][%tick]";
@@ -165,6 +173,89 @@ describe("Node統合テスト", () => {
     expect(() => setDefaultConfig({ level: "invalid_level_from_js" })).toThrow("invalid log level: \"invalid_level_from_js\"");
     // @ts-expect-error 個別設定でも同様
     expect(() => setLoggerLevel("invalid-test", "invalid")).toThrow("invalid log level: \"invalid\"");
+
+    // 6: getterの戻り値とsetLoggerConfig入力の後続変更が内部stateに漏れないこと
+    setDefaultConfig({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "[default-snapshot][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "stable-default" }
+    });
+
+    const existingDefaultSnapshotLogger = getLogger("default-snapshot-existing");
+    const defaultSnapshot = getDefaultConfig() as {
+      level: string;
+      prefixEnabled: boolean;
+      prefixFormat: string;
+      placeholders: Record<string, string>;
+    };
+    defaultSnapshot.level = "error";
+    defaultSnapshot.prefixEnabled = false;
+    defaultSnapshot.prefixFormat = "[tampered-default][%app][%loggerName][%logLevel]";
+    defaultSnapshot.placeholders["%app"] = "tampered-default";
+
+    existingDefaultSnapshotLogger.info("default snapshot existing");
+    const newDefaultSnapshotLogger = getLogger("default-snapshot-new");
+    newDefaultSnapshotLogger.info("default snapshot new");
+
+    expect(
+      outputs.some((line) =>
+        line.includes("[default-snapshot][stable-default][default-snapshot-existing][INFO] default snapshot existing")
+      )
+    ).toBeTruthy();
+    expect(
+      outputs.some((line) =>
+        line.includes("[default-snapshot][stable-default][default-snapshot-new][INFO] default snapshot new")
+      )
+    ).toBeTruthy();
+
+    const overrideInputPlaceholders = { "%app": "stable-override" };
+    setLoggerConfig("override-snapshot", {
+      prefixFormat: "[override-snapshot][%app][%loggerName][%logLevel]",
+      placeholders: overrideInputPlaceholders
+    });
+    overrideInputPlaceholders["%app"] = "tampered-input";
+
+    const overrideSnapshotLogger = getLogger("override-snapshot");
+    overrideSnapshotLogger.info("override snapshot input");
+    expect(
+      outputs.some((line) =>
+        line.includes("[override-snapshot][stable-override][override-snapshot][INFO] override snapshot input")
+      )
+    ).toBeTruthy();
+
+    const overrideSnapshot = getLoggerOverrides("override-snapshot") as {
+      prefixFormat?: string;
+      placeholders?: Record<string, string>;
+    };
+    overrideSnapshot.prefixFormat = "[tampered-override][%app][%loggerName][%logLevel]";
+    overrideSnapshot.placeholders!["%app"] = "tampered-override";
+
+    setDefaultConfig({ level: "info" });
+    overrideSnapshotLogger.info("override snapshot getter");
+    expect(
+      outputs.some((line) =>
+        line.includes("[override-snapshot][stable-override][override-snapshot][INFO] override snapshot getter")
+      )
+    ).toBeTruthy();
+
+    const libraryDefaults = getLibraryDefaults() as {
+      level: string;
+      prefixEnabled: boolean;
+      prefixFormat: string;
+      placeholders: Record<string, string>;
+    };
+    libraryDefaults.level = "error";
+    libraryDefaults.prefixEnabled = false;
+    libraryDefaults.prefixFormat = "[tampered-library]";
+    libraryDefaults.placeholders["%app"] = "tampered-library";
+
+    expect(getLibraryDefaults()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: {}
+    });
 
     console.log("Nodeログ:", outputs);
   };
