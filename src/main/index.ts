@@ -21,10 +21,93 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
 };
 
 const VALID_LEVELS = new Set<string>(Object.keys(LEVEL_ORDER));
+const PLACEHOLDER_KEY_PATTERN = /^%\w+$/;
+const RESERVED_PLACEHOLDER_KEYS = new Set<string>(["%%", "%loggerName", "%logLevel"]);
+
+function isPlainObject(value: unknown): value is Record<PropertyKey, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const proto = Object.getPrototypeOf(value);
+  // 別realmのObject.prototypeも終端はnullになるため、通常オブジェクトとして受け入れる。
+  return proto === null || Object.getPrototypeOf(proto) === null;
+}
+
+function formatInvalidValue(value: unknown): string {
+  if (typeof value === "object" && value !== null && !Array.isArray(value) && !isPlainObject(value)) {
+    return Object.prototype.toString.call(value);
+  }
+
+  try {
+    const json = JSON.stringify(value);
+    if (json !== undefined) return json;
+  } catch {
+    // JSON化できない値は文字列表現へフォールバックする。
+  }
+
+  if (typeof value === "function") return `[function ${value.name || "anonymous"}]`;
+  return String(value);
+}
 
 function validateLevel(level: unknown): void {
-  if (typeof level !== "string" || !VALID_LEVELS.has(level)) {
-    throw new Error(`invalid log level: ${JSON.stringify(level)}`);
+  if (typeof level !== "string") {
+    throw new TypeError(`invalid log level: ${formatInvalidValue(level)}`);
+  }
+
+  if (!VALID_LEVELS.has(level)) {
+    throw new Error(`invalid log level: ${formatInvalidValue(level)}`);
+  }
+}
+
+function validatePrefixEnabled(prefixEnabled: unknown): void {
+  if (typeof prefixEnabled !== "boolean") {
+    throw new TypeError(`invalid prefixEnabled: ${formatInvalidValue(prefixEnabled)}`);
+  }
+}
+
+function validatePrefixFormat(prefixFormat: unknown): void {
+  if (typeof prefixFormat !== "string") {
+    throw new TypeError(`invalid prefixFormat: ${formatInvalidValue(prefixFormat)}`);
+  }
+}
+
+function validatePlaceholderKey(key: PropertyKey): void {
+  if (typeof key !== "string") {
+    throw new TypeError(`invalid placeholder key: ${formatInvalidValue(key)}`);
+  }
+
+  if (RESERVED_PLACEHOLDER_KEYS.has(key)) {
+    throw new Error(`reserved placeholder key: ${formatInvalidValue(key)}`);
+  }
+
+  if (!PLACEHOLDER_KEY_PATTERN.test(key)) {
+    throw new Error(`invalid placeholder key: ${formatInvalidValue(key)}`);
+  }
+}
+
+function validatePlaceholders(placeholders: unknown): void {
+  if (!isPlainObject(placeholders)) {
+    throw new TypeError(`invalid placeholders: ${formatInvalidValue(placeholders)}`);
+  }
+
+  for (const key of Reflect.ownKeys(placeholders)) {
+    if (!Object.prototype.propertyIsEnumerable.call(placeholders, key)) {
+      continue;
+    }
+
+    validatePlaceholderKey(key);
+
+    const value = placeholders[key];
+    if (typeof value !== "string" && typeof value !== "function") {
+      throw new TypeError(`invalid placeholder value for ${JSON.stringify(key)}: ${formatInvalidValue(value)}`);
+    }
+  }
+}
+
+function validateConfigObject(partial: unknown): void {
+  if (!isPlainObject(partial)) {
+    throw new TypeError(`invalid config: ${formatInvalidValue(partial)}`);
   }
 }
 
@@ -169,20 +252,44 @@ function reapplyAllLoggers(): void {
   }
 }
 
+function validateConfigPartial(partial: Partial<LoggerConfigFields>): void {
+  validateConfigObject(partial);
+
+  if (Object.hasOwn(partial, "level")) {
+    validateLevel(partial.level);
+  }
+  if (Object.hasOwn(partial, "prefixEnabled")) {
+    validatePrefixEnabled(partial.prefixEnabled);
+  }
+  if (Object.hasOwn(partial, "prefixFormat")) {
+    validatePrefixFormat(partial.prefixFormat);
+  }
+  if (Object.hasOwn(partial, "placeholders")) {
+    validatePlaceholders(partial.placeholders);
+  }
+}
+
 /**
  * デフォルト設定関数
  */
 export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
   const state = getState();
+  validateConfigPartial(partial);
 
-  if (partial.level !== undefined) {
-    validateLevel(partial.level);
-    state.defaults.level = partial.level;
+  if (Object.hasOwn(partial, "level")) {
+    state.defaults.level = partial.level as LogLevel;
   }
-  if (typeof partial.prefixEnabled === "boolean") state.defaults.prefixEnabled = partial.prefixEnabled;
-  if (typeof partial.prefixFormat === "string") state.defaults.prefixFormat = partial.prefixFormat;
-  if (partial.placeholders && typeof partial.placeholders === "object") {
-    state.defaults.placeholders = { ...partial.placeholders };
+
+  if (Object.hasOwn(partial, "prefixEnabled")) {
+    state.defaults.prefixEnabled = partial.prefixEnabled as boolean;
+  }
+
+  if (Object.hasOwn(partial, "prefixFormat")) {
+    state.defaults.prefixFormat = partial.prefixFormat as string;
+  }
+
+  if (Object.hasOwn(partial, "placeholders")) {
+    state.defaults.placeholders = { ...(partial.placeholders as Placeholders) };
   }
 
   reapplyAllLoggers();
@@ -198,9 +305,7 @@ export function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
     throw new Error("logger name must be a non-empty string");
   }
 
-  if (partial.level !== undefined) {
-    validateLevel(partial.level);
-  }
+  validateConfigPartial(partial);
 
   const current = state.perLogger[key] ?? {};
   state.perLogger[key] = { ...current, ...partial };

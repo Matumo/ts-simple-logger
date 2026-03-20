@@ -68,7 +68,8 @@ Log levels: `trace`, `debug`, `info`, `warn`, `error`, `silent`
 Placeholders:
 
 - Built-in: `%loggerName`, `%logLevel`
-- Custom keys must include the leading `%` (example: `%appName`)
+- Custom keys must start with `%` and use only word characters (example: `%appName`)
+- Reserved placeholders `%loggerName` and `%logLevel` cannot be overridden, and the escape token `%%` is also reserved
 - Unknown placeholders remain as-is
 - Use `%%` to output a literal `%`
 - Placeholder functions are evaluated at log time

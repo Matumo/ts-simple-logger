@@ -1,3 +1,4 @@
+import * as vm from "node:vm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import type { LogLevel } from "@main/index";
@@ -14,6 +15,10 @@ type CallSpy = {
     calls: unknown[][];
   };
 };
+
+function alwaysTrue() {
+  return true;
+}
 
 function restoreConsole(): void {
   globalThis.console = originalConsole;
@@ -305,6 +310,8 @@ describe("設定のバリデーション", () => {
   });
 
   it("setDefaultConfigに不正なlevelを渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig({ level: 123 as unknown as LogLevel })).toThrow(TypeError);
+    expect(() => sut.setDefaultConfig({ level: 123 as unknown as LogLevel })).toThrow("invalid log level: 123");
     expect(() => sut.setDefaultConfig({ level: "verbose" as LogLevel })).toThrow("invalid log level");
     expect(() => sut.setDefaultConfig({ level: "" as LogLevel })).toThrow("invalid log level");
     expect(sut.getDefaultConfig().level).toBe("info");
@@ -315,10 +322,209 @@ describe("設定のバリデーション", () => {
     expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
   });
 
+  it("setDefaultConfigにobject以外のpartialを渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig(null as unknown as Parameters<typeof sut.setDefaultConfig>[0])).toThrow(TypeError);
+    expect(() => sut.setDefaultConfig(null as unknown as Parameters<typeof sut.setDefaultConfig>[0])).toThrow("invalid config: null");
+    expect(() => sut.setDefaultConfig(0 as unknown as Parameters<typeof sut.setDefaultConfig>[0])).toThrow(TypeError);
+    expect(() => sut.setDefaultConfig(0 as unknown as Parameters<typeof sut.setDefaultConfig>[0])).toThrow("invalid config: 0");
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: {}
+    });
+  });
+
+  it("setLoggerConfigにobject以外のpartialを渡すと拒否する", () => {
+    expect(() => sut.setLoggerConfig("test-invalid", false as unknown as Parameters<typeof sut.setLoggerConfig>[1])).toThrow(
+      TypeError
+    );
+    expect(() => sut.setLoggerConfig("test-invalid", false as unknown as Parameters<typeof sut.setLoggerConfig>[1])).toThrow(
+      "invalid config: false"
+    );
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
+  });
+
+  it("setDefaultConfigに不正なprefixEnabledを渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig({ prefixEnabled: "yes" as unknown as boolean })).toThrow(TypeError);
+    expect(() => sut.setDefaultConfig({ prefixEnabled: "yes" as unknown as boolean })).toThrow(
+      "invalid prefixEnabled: \"yes\""
+    );
+    expect(sut.getDefaultConfig().prefixEnabled).toBe(true);
+  });
+
+  it("setLoggerConfigに不正なprefixFormatを渡すと拒否する", () => {
+    expect(() => sut.setLoggerConfig("test-invalid", { prefixFormat: 123 as unknown as string })).toThrow(TypeError);
+    expect(() => sut.setLoggerConfig("test-invalid", { prefixFormat: 123 as unknown as string })).toThrow(
+      "invalid prefixFormat: 123"
+    );
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
+  });
+
+  it("setDefaultConfigに不正なplaceholdersを渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig({ placeholders: [] as unknown as Record<string, string> })).toThrow(TypeError);
+    expect(() => sut.setDefaultConfig({ placeholders: [] as unknown as Record<string, string> })).toThrow(
+      "invalid placeholders: []"
+    );
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+  });
+
+  it("setDefaultConfigにnon-plain-objectのplaceholdersを渡すと拒否する", () => {
+    expect(() => sut.setDefaultConfig({ placeholders: new Map([["%app", "svc"]]) as unknown as Record<string, string> })).toThrow(
+      "invalid placeholders: [object Map]"
+    );
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+  });
+
+  it("別realmで作られたdefault configとplaceholdersを受け入れる", () => {
+    const foreignConfig = vm.runInNewContext(`({
+      prefixEnabled: false,
+      prefixFormat: "[%app]",
+      placeholders: { "%app": "svc" }
+    })`) as Parameters<typeof sut.setDefaultConfig>[0];
+
+    expect(() => sut.setDefaultConfig(foreignConfig)).not.toThrow();
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: false,
+      prefixFormat: "[%app]",
+      placeholders: { "%app": "svc" }
+    });
+  });
+
+  it("別realmで作られたlogger configとplaceholdersを受け入れる", () => {
+    const foreignConfig = vm.runInNewContext(`({
+      prefixEnabled: false,
+      prefixFormat: "[%app][%loggerName]",
+      placeholders: { "%app": "svc" }
+    })`) as Parameters<typeof sut.setLoggerConfig>[1];
+
+    expect(() => sut.setLoggerConfig("foreign-realm", foreignConfig)).not.toThrow();
+    expect(sut.getLoggerOverrides("foreign-realm")).toEqual({
+      prefixEnabled: false,
+      prefixFormat: "[%app][%loggerName]",
+      placeholders: { "%app": "svc" }
+    });
+  });
+
+  it("setLoggerConfigに不正なplaceholderキーを渡すと拒否する", () => {
+    expect(() =>
+      sut.setLoggerConfig("test-invalid", {
+        placeholders: { "%app-name": "svc" } as unknown as Record<string, string>
+      })
+    ).toThrow("invalid placeholder key: \"%app-name\"");
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
+  });
+
+  it("setDefaultConfigに予約済みplaceholderキーを渡すと拒否する", () => {
+    expect(() =>
+      sut.setDefaultConfig({
+        placeholders: { "%loggerName": "svc" } as unknown as Record<string, string>
+      })
+    ).toThrow("reserved placeholder key: \"%loggerName\"");
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+  });
+
+  it("setDefaultConfigにsymbolのplaceholderキーを渡すと拒否する", () => {
+    const invalidKey = Symbol("placeholder-key");
+
+    expect(() =>
+      sut.setDefaultConfig({
+        placeholders: { [invalidKey]: "svc" } as unknown as Record<string, string>
+      })
+    ).toThrow("invalid placeholder key: Symbol(placeholder-key)");
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+  });
+
+  it("non-enumerableなplaceholderキーは無視する", () => {
+    const placeholders = {};
+    Object.defineProperty(placeholders, "%hidden", {
+      value: "secret",
+      enumerable: false
+    });
+
+    expect(() =>
+      sut.setDefaultConfig({
+        placeholders: placeholders as unknown as Record<string, string>
+      })
+    ).not.toThrow();
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+  });
+
+  it("setLoggerConfigに不正なplaceholder値を渡すと拒否する", () => {
+    expect(() =>
+      sut.setLoggerConfig("test-invalid", {
+        placeholders: { "%bad": 123 as unknown as string }
+      })
+    ).toThrow(TypeError);
+    expect(() =>
+      sut.setLoggerConfig("test-invalid", {
+        placeholders: { "%bad": 123 as unknown as string }
+      })
+    ).toThrow("invalid placeholder value for \"%bad\": 123");
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
+  });
+
+  it("不正値メッセージでnamed functionを表示できる", () => {
+    expect(() => sut.setDefaultConfig({ prefixEnabled: alwaysTrue as unknown as boolean })).toThrow(
+      "invalid prefixEnabled: [function alwaysTrue]"
+    );
+  });
+
+  it("不正値メッセージでanonymous functionを表示できる", () => {
+    const anonymousInvalidFlag = alwaysTrue.bind(undefined);
+    Object.defineProperty(anonymousInvalidFlag, "name", { value: "" });
+
+    expect(() => sut.setDefaultConfig({ prefixEnabled: anonymousInvalidFlag as unknown as boolean })).toThrow(
+      "invalid prefixEnabled: [function anonymous]"
+    );
+  });
+
+  it("不正値メッセージでJSON化できない値を文字列化できる", () => {
+    expect(() => sut.setDefaultConfig({ prefixEnabled: Symbol("bad-flag") as unknown as boolean })).toThrow(
+      "invalid prefixEnabled: Symbol(bad-flag)"
+    );
+  });
+
   it("不正なlevelでthrowしても既存設定は変更されない", () => {
     sut.setDefaultConfig({ level: "debug" });
     expect(() => sut.setDefaultConfig({ level: "nope" as LogLevel })).toThrow("invalid log level");
     expect(sut.getDefaultConfig().level).toBe("debug");
+  });
+
+  it("不正なデフォルト設定でthrowしても既存設定は変更されない", () => {
+    sut.setDefaultConfig({
+      prefixEnabled: false,
+      prefixFormat: "[%loggerName]",
+      placeholders: { "%app": "base" }
+    });
+
+    expect(() => sut.setDefaultConfig({ prefixFormat: null as unknown as string })).toThrow("invalid prefixFormat: null");
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: false,
+      prefixFormat: "[%loggerName]",
+      placeholders: { "%app": "base" }
+    });
+  });
+
+  it("不正な個別設定でthrowしても既存設定は変更されない", () => {
+    sut.setLoggerConfig("sticky-invalid", {
+      level: "debug",
+      prefixFormat: "<ok>",
+      placeholders: { "%app": "svc" }
+    });
+
+    expect(() =>
+      sut.setLoggerConfig("sticky-invalid", {
+        prefixEnabled: "no" as unknown as boolean
+      })
+    ).toThrow("invalid prefixEnabled: \"no\"");
+    expect(sut.getLoggerOverrides("sticky-invalid")).toEqual({
+      level: "debug",
+      prefixFormat: "<ok>",
+      placeholders: { "%app": "svc" }
+    });
   });
 
   it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {

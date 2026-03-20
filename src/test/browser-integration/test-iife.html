@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
+  <title>ts-simple-logger browser test (IIFE)</title>
+</head>
+<body>
+  <p>Running browser integration scenario for the IIFE bundle.</p>
+
+  <script src="./test-shared.js"></script>
+  <script src="./index.iife.js"></script>
+  <script>
+    globalThis.TsSimpleLoggerBrowserTest.runScenario({
+      kind: "iife",
+      api: globalThis.TsSimpleLogger
+    })
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createRequire } from "node:module";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import * as vm from "node:vm";
 
 type DistModule = Awaited<typeof import("../../../dist/index.js")>;
 
@@ -58,7 +59,7 @@ describe("Node統合テスト", () => {
 
   const runBundleTest = async (loadModule: () => Promise<DistModule>) => {
     const mod: DistModule = await loadModule();
-    const { getLogger, setDefaultConfig, setLoggerLevel } = mod;
+    const { getLogger, setDefaultConfig, setLoggerConfig, setLoggerLevel } = mod;
 
     let tick = 0;
     const format = "[node %%][%app][%loggerName][%logLevel][%tick]";
@@ -80,14 +81,63 @@ describe("Node統合テスト", () => {
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][INFO][tick-2]"))).toBeTruthy();
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][WARN][tick-3]"))).toBeTruthy();
 
-    // 2: プレフィックスの無効化
+    // 2: バリデーションチェック
+    const validationLogger = getLogger("node-validation");
+    setLoggerConfig("node-validation", {
+      prefixFormat: "[node-validation][%loggerName][%logLevel]"
+    });
+
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setDefaultConfig({ prefixEnabled: "invalid_prefix_enabled_from_js" })).toThrow(
+      "invalid prefixEnabled: \"invalid_prefix_enabled_from_js\""
+    );
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setDefaultConfig(0)).toThrow("invalid config: 0");
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setLoggerConfig("node-validation", false)).toThrow("invalid config: false");
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setLoggerConfig("node-validation", { prefixFormat: 123 })).toThrow("invalid prefixFormat: 123");
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setDefaultConfig({ placeholders: [] })).toThrow("invalid placeholders: []");
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setDefaultConfig({ placeholders: new Map([["%app", "svc"]]) })).toThrow("invalid placeholders: [object Map]");
+    expect(() => setLoggerConfig("node-validation", { placeholders: { "%app-name": "svc" } })).toThrow(
+      "invalid placeholder key: \"%app-name\""
+    );
+    expect(() => setLoggerConfig("node-validation", { placeholders: { "%loggerName": "svc" } })).toThrow(
+      "reserved placeholder key: \"%loggerName\""
+    );
+    // @ts-expect-error 型エラーを無視して不正な値を投入する
+    expect(() => setLoggerConfig("node-validation", { placeholders: { "%bad": 123 } })).toThrow(
+      "invalid placeholder value for \"%bad\": 123"
+    );
+
+    validationLogger.info("validation still works");
+    expect(
+      outputs.some((line) => line.includes("[node-validation][node-validation][INFO] validation still works"))
+    ).toBeTruthy();
+
+    const foreignRealmLogger = getLogger("node-foreign-realm");
+    const foreignRealmConfig: Parameters<typeof setLoggerConfig>[1] = vm.runInNewContext(`({
+      prefixEnabled: true,
+      prefixFormat: "[node-foreign][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "vm" }
+    })`);
+
+    expect(() => setLoggerConfig("node-foreign-realm", foreignRealmConfig)).not.toThrow();
+    foreignRealmLogger.info("foreign realm still works");
+    expect(
+      outputs.some((line) => line.includes("[node-foreign][vm][node-foreign-realm][INFO] foreign realm still works"))
+    ).toBeTruthy();
+
+    // 3: プレフィックスの無効化
     const noPrefixLogger = getLogger("node-no-prefix");
     setDefaultConfig({ prefixEnabled: false });
 
     noPrefixLogger.info("raw line");
     expect(outputs.includes("info raw line")).toBeTruthy();
 
-    // 3: グローバルレベル vs 個別ロガーの上書き
+    // 4: グローバルレベル vs 個別ロガーの上書き
     setDefaultConfig({ level: "error", prefixEnabled: true });
 
     const overrideLogger = getLogger("override-test");
@@ -110,7 +160,7 @@ describe("Node統合テスト", () => {
     expect(outputs.some((line) => line.includes("[override-test][DEBUG]") && line.includes("override debug"))).toBeTruthy();
     expect(outputs.some((line) => line.includes("override trace"))).toBeFalsy();
 
-    // 4: バリデーションエラー処理
+    // 5: バリデーションエラー処理
     // @ts-expect-error 型エラーを無視して不正な値を投入する
     expect(() => setDefaultConfig({ level: "invalid_level_from_js" })).toThrow("invalid log level: \"invalid_level_from_js\"");
     // @ts-expect-error 個別設定でも同様
