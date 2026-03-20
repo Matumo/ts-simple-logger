@@ -118,11 +118,11 @@ describe("Node統合テスト", () => {
     ).toBeTruthy();
 
     const foreignRealmLogger = getLogger("node-foreign-realm");
-    const foreignRealmConfig = vm.runInNewContext(`({
+    const foreignRealmConfig: Parameters<typeof setLoggerConfig>[1] = vm.runInNewContext(`({
       prefixEnabled: true,
       prefixFormat: "[node-foreign][%app][%loggerName][%logLevel]",
       placeholders: { "%app": "vm" }
-    })`) as Parameters<typeof setLoggerConfig>[1];
+    })`);
 
     expect(() => setLoggerConfig("node-foreign-realm", foreignRealmConfig)).not.toThrow();
     foreignRealmLogger.info("foreign realm still works");
