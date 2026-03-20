@@ -180,14 +180,34 @@ describe("ログ出力の挙動", () => {
     expect(infoSpy).toHaveBeenCalledWith("no prefix");
   });
 
-  it("プレフィックスが空文字の場合は引数のみ出力する", () => {
+  it("プレフィックスが空文字でもprefixEnabledがtrueならプレフィックス経由で出力する", () => {
     sut.setDefaultConfig({ prefixFormat: "" });
-    const infoSpy = vi.spyOn(console, "info");
+    const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("empty-prefix");
 
     logger.info("payload");
 
-    expect(infoSpy).toHaveBeenCalledWith("payload");
+    expectPrefixedConsoleCall(infoSpy, 0, "", "payload");
+  });
+
+  it("プレースホルダー展開後にプレフィックスが空文字でもプレフィックス経由で出力する", () => {
+    const prefixFn = vi.fn<() => string>()
+      .mockReturnValueOnce("")
+      .mockReturnValueOnce("[shown]");
+    sut.setDefaultConfig({
+      prefixFormat: "%dynamic",
+      placeholders: { "%dynamic": prefixFn }
+    });
+
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("resolved-empty-prefix");
+
+    logger.info("first");
+    logger.info("second");
+
+    expectPrefixedConsoleCall(infoSpy, 0, "", "first");
+    expectPrefixedConsoleCall(infoSpy, 1, "[shown]", "second");
+    expect(prefixFn).toHaveBeenCalledTimes(2);
   });
 
   it("ログレベルの動作確認", () => {

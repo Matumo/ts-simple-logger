@@ -78,7 +78,9 @@ Placeholders:
 Prefix behavior:
 
 - If `prefixEnabled` is `false`, only the original arguments are logged
-- If the prefix resolves to an empty string, only the original arguments are logged
+- If `prefixEnabled` is `true`, the logger always uses the configured prefix path
+  - This also applies when `prefixFormat` is an empty string or placeholder expansion resolves the prefix to an empty string
+  - If you want to avoid whitespace in that case, set `prefixEnabled` to `false`
 
 Config resolution:
 

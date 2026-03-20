@@ -252,7 +252,6 @@ function applyConfigToLogger(logger: Logger): void {
   const buildMethod = (level: LogLevel, fn: (...a: unknown[]) => void) => {
     if (!enabled(level)) return noop;
     if (!cfg.prefixEnabled) return fn;
-    if (!cfg.prefixFormat) return fn;
 
     return fn.bind(null, "%s", {
       toString: () => formatPrefix(cfg.prefixFormat, name, level, cfg.placeholders),

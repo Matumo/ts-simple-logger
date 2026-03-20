@@ -84,6 +84,14 @@
       setLoggerConfig(`${kind}-no-prefix`, { prefixEnabled: false })
       edgeNoPrefix.info(`${kind} edge no prefix`)
 
+      const resolvedEmptyPrefix = getLogger(`${kind}-resolved-empty-prefix`)
+      setLoggerConfig(`${kind}-resolved-empty-prefix`, {
+        prefixEnabled: true,
+        prefixFormat: "%empty",
+        placeholders: { "%empty": "" }
+      })
+      resolvedEmptyPrefix.info(`${kind} resolved empty prefix`)
+
       const edgeOverride = getLogger(`${kind}-edge-override`)
       setLoggerLevel(`${kind}-edge-override`, "error")
       edgeOverride.warn(`${kind} edge hidden warn`)
