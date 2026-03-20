@@ -3,391 +3,129 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ts-simple-logger demo</title>
-  <style>
-    :root {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-    }
-
-    body {
-      margin: 0;
-      padding: 32px 24px 48px;
-      line-height: 1.6;
-    }
-
-    h1, h2 {
-      margin: 0 0 12px;
-      font-weight: 700;
-    }
-
-    p {
-      margin: 0 0 16px;
-      color: #cbd5e1;
-    }
-
-    .card {
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
-
-    button {
-      border: none;
-      background: linear-gradient(135deg, #22d3ee, #6366f1);
-      color: #0b1021;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 120ms ease, box-shadow 120ms ease;
-      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.35);
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 26px rgba(99, 102, 241, 0.45);
-    }
-
-    code {
-      color: #38bdf8;
-      font-weight: 600;
-    }
-
-    .note {
-      font-size: 0.9rem;
-      color: #94a3b8;
-    }
-  </style>
+  <title>ts-simple-logger :: Diagnostics</title>
+  <link rel="stylesheet" href="./demo.css" />
 </head>
 <body>
-  <h1>ts-simple-logger demo</h1>
-  <p>Open the console to see logs. Buttons below trigger messages using both the ES module and IIFE bundles.</p>
+  <main>
+    <header class="masthead" aria-label="demo summary">
+      <p class="eyebrow">ts-simple-logger / browser demo</p>
+      <h1>Browser Log Demo</h1>
+      <p class="intro">
+        Open DevTools, then trigger either bundle. The page stays minimal and dark so the console output stays in focus.
+      </p>
 
-  <section class="card">
-    <h2>Module build (<code>type="module"</code>)</h2>
-    <p>This example imports directly from the ESM bundle and configures two loggers with different log levels.</p>
-    <div class="actions">
-      <button id="module-run">Run module logs</button>
-      <span class="note">Uses <code>./index.js</code></span>
-    </div>
-  </section>
+      <div class="meta">
+        <div class="meta-item">
+          <span class="meta-label">Output</span>
+          <span>Browser DevTools Console</span>
+        </div>
 
-  <section class="card">
-    <h2>IIFE build</h2>
-    <p>This example uses the global <code>TsSimpleLogger</code> exposed by the IIFE bundle.</p>
-    <div class="actions">
-      <button id="iife-run">Run IIFE logs</button>
-      <span class="note">Uses <code>./index.iife.js</code></span>
-    </div>
-  </section>
+        <div class="meta-item">
+          <span class="meta-label">Levels</span>
+          <ul class="levels" aria-label="log levels">
+            <li>trace</li>
+            <li>debug</li>
+            <li>info</li>
+            <li>warn</li>
+            <li>error</li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <section class="actions" aria-label="logger demo actions">
+      <article class="panel module">
+        <div class="panel-top">
+          <span class="panel-label">ES module</span>
+          <span class="panel-path"><code>./index.js</code></span>
+        </div>
+
+        <div class="panel-body">
+          <div>
+            <h2>Run the module bundle</h2>
+            <p>Imports the ESM bundle and emits a trace-to-error sequence from the module logger.</p>
+          </div>
+
+          <button id="module-run" type="button">Run module logs</button>
+        </div>
+      </article>
+
+      <article class="panel iife">
+        <div class="panel-top">
+          <span class="panel-label">IIFE bundle</span>
+          <span class="panel-path"><code>./index.iife.js</code></span>
+        </div>
+
+        <div class="panel-body">
+          <div>
+            <h2>Run the IIFE bundle</h2>
+            <p>Uses the global <code>TsSimpleLogger</code> API and emits the same sample output through the IIFE bundle.</p>
+          </div>
+
+          <button id="iife-run" type="button">Run IIFE logs</button>
+        </div>
+      </article>
+    </section>
+  </main>
 
   <script type="module">
     import {
       getLogger,
       setDefaultConfig,
-      setLoggerConfig
-    } from "./index.js";
+      setLoggerLevel
+    } from "./index.js"
 
-    let moduleTick = 0;
+    let moduleTick = 0
     setDefaultConfig({
       level: "trace",
       prefixEnabled: true,
-      prefixFormat: "[module][%app][%loggerName] %logLevel: [%tick]",
+      prefixFormat: "[demo-module][%loggerName] %logLevel: [%tick]",
       placeholders: {
-        "%app": "browser-app",
         "%tick": () => `module-${++moduleTick}`
       }
-    });
+    })
 
-    const moduleLogger = getLogger("module-demo");
-    const moduleNetworkLogger = getLogger("module-network");
+    const moduleLogger = getLogger("module-demo")
+    setLoggerLevel("module-demo", "trace")
 
-    const createCrossRealmObject = () => {
-      const frame = document.createElement("iframe");
-      frame.style.display = "none";
-      document.body.append(frame);
-
-      const foreignWindow = frame.contentWindow;
-      if (!foreignWindow) {
-        frame.remove();
-        throw new Error("iframe contentWindow is unavailable");
-      }
-
-      const foreignObject = new foreignWindow.Object();
-      return {
-        foreignObject,
-        cleanup: () => frame.remove()
-      };
-    };
-
-    setLoggerConfig("module-demo", {
-      level: "trace"
-    });
-    setLoggerConfig("module-network", {
-      level: "warn"
-    });
-
-    const moduleButton = document.querySelector("#module-run");
-    moduleButton?.addEventListener("click", () => {
-      moduleLogger.trace("module trace");
-      moduleLogger.debug("module debug");
-      moduleLogger.info("module info");
-      moduleNetworkLogger.info("network info (hidden because level=warn)");
-      moduleNetworkLogger.warn("network warning");
-      moduleNetworkLogger.error("network error", { status: 500 });
-
-      // エッジケースの出力
-      const edgeNoPrefix = getLogger("module-no-prefix");
-      setLoggerConfig("module-no-prefix", { prefixEnabled: false });
-      edgeNoPrefix.info("module edge no prefix");
-
-      const edgeOverride = getLogger("module-edge-override");
-      setLoggerConfig("module-edge-override", { level: "error" });
-      edgeOverride.warn("module edge hidden warn");
-      edgeOverride.error("module edge error");
-
-      const moduleValidationLogger = getLogger("module-validation");
-      setLoggerConfig("module-validation", {
-        prefixFormat: "[module-validation][%loggerName] %logLevel:"
-      });
-
-      // 不正な設定値のテスト
-      try {
-        setDefaultConfig({ prefixEnabled: "invalid_module_prefix_enabled" });
-      } catch (e) {
-        moduleLogger.error(`caught invalid prefixEnabled: ${e.message}`);
-      }
-      try {
-        setDefaultConfig(0);
-      } catch (e) {
-        moduleLogger.error(`caught invalid config object: ${e.message}`);
-      }
-      try {
-        setLoggerConfig("module-validation", false);
-      } catch (e) {
-        moduleLogger.error(`caught invalid logger config object: ${e.message}`);
-      }
-      try {
-        setLoggerConfig("module-validation", { prefixFormat: 123 });
-      } catch (e) {
-        moduleLogger.error(`caught invalid prefixFormat: ${e.message}`);
-      }
-      try {
-        setDefaultConfig({ placeholders: [] });
-      } catch (e) {
-        moduleLogger.error(`caught invalid placeholders: ${e.message}`);
-      }
-      try {
-        setDefaultConfig({ placeholders: new Map([["%app", "svc"]]) });
-      } catch (e) {
-        moduleLogger.error(`caught invalid placeholder container: ${e.message}`);
-      }
-      try {
-        setLoggerConfig("module-validation", { placeholders: { "%app-name": "svc" } });
-      } catch (e) {
-        moduleLogger.error(`caught invalid placeholder key: ${e.message}`);
-      }
-      try {
-        setLoggerConfig("module-validation", { placeholders: { "%loggerName": "svc" } });
-      } catch (e) {
-        moduleLogger.error(`caught reserved placeholder key: ${e.message}`);
-      }
-      try {
-        setLoggerConfig("module-validation", { placeholders: { "%bad": 123 } });
-      } catch (e) {
-        moduleLogger.error(`caught invalid placeholder value: ${e.message}`);
-      }
-
-      moduleValidationLogger.info("module validation still works");
-
-      const moduleForeignLogger = getLogger("module-foreign-realm");
-      let cleanupModuleForeignConfig = () => {};
-      let cleanupModuleForeignPlaceholders = () => {};
-      try {
-        const { foreignObject: foreignConfig, cleanup } = createCrossRealmObject();
-        cleanupModuleForeignConfig = cleanup;
-        const { foreignObject: foreignPlaceholders, cleanup: cleanupPlaceholders } = createCrossRealmObject();
-        cleanupModuleForeignPlaceholders = cleanupPlaceholders;
-        foreignConfig.prefixEnabled = true;
-        foreignConfig.prefixFormat = "[module-foreign][%app][%loggerName] %logLevel:";
-        foreignPlaceholders["%app"] = "iframe";
-        foreignConfig.placeholders = foreignPlaceholders;
-
-        setLoggerConfig("module-foreign-realm", foreignConfig);
-        moduleForeignLogger.info("module foreign realm still works");
-      } catch (e) {
-        moduleLogger.error(`caught foreign realm config: ${e.message}`);
-      } finally {
-        cleanupModuleForeignPlaceholders();
-        cleanupModuleForeignConfig();
-      }
-
-      // 不正なログレベルのテスト
-      try {
-        setLoggerConfig("module-invalid", { level: "invalid_level_from_browser" });
-      } catch (e) {
-        moduleLogger.error(`caught invalid config: ${e.message}`);
-      }
-    });
+    document.querySelector("#module-run")?.addEventListener("click", () => {
+      moduleLogger.trace("module trace")
+      moduleLogger.debug("module debug")
+      moduleLogger.info("module info")
+      moduleLogger.warn("module warn")
+      moduleLogger.error("module error", { status: 500 })
+    })
   </script>
 
   <script src="./index.iife.js"></script>
   <script>
-    // Module側の非同期セットアップ完了を待つため、load イベントで遅延実行する
-    window.addEventListener("load", () => {
-      const {
-        getLogger: getLoggerIife,
-        setDefaultConfig: setDefaultConfigIife,
-        setLoggerLevel: setLoggerLevelIife
-      } = TsSimpleLogger;
+    const {
+      getLogger: getLoggerIife,
+      setDefaultConfig: setDefaultConfigIife,
+      setLoggerLevel: setLoggerLevelIife
+    } = TsSimpleLogger
 
-      let iifeTick = 0;
-      setDefaultConfigIife({
-        level: "debug",
-        prefixEnabled: true,
-        prefixFormat: "[iife][%app][%loggerName] %logLevel: [%tick]",
-        placeholders: {
-          "%app": "browser-iife",
-          "%tick": () => `iife-${++iifeTick}`
-        }
-      });
+    let iifeTick = 0
+    setDefaultConfigIife({
+      level: "trace",
+      prefixEnabled: true,
+      prefixFormat: "[demo-iife][%loggerName] %logLevel: [%tick]",
+      placeholders: {
+        "%tick": () => `iife-${++iifeTick}`
+      }
+    })
 
-      const iifeLogger = getLoggerIife("iife-demo");
-      const iifeUiLogger = getLoggerIife("iife-ui");
-      const createCrossRealmObject = () => {
-        const frame = document.createElement("iframe");
-        frame.style.display = "none";
-        document.body.append(frame);
+    const iifeLogger = getLoggerIife("iife-demo")
+    setLoggerLevelIife("iife-demo", "trace")
 
-        const foreignWindow = frame.contentWindow;
-        if (!foreignWindow) {
-          frame.remove();
-          throw new Error("iframe contentWindow is unavailable");
-        }
-
-        const foreignObject = new foreignWindow.Object();
-        return {
-          foreignObject,
-          cleanup: () => frame.remove()
-        };
-      };
-
-      setLoggerLevelIife("iife-ui", "info");
-
-      const iifeButton = document.querySelector("#iife-run");
-      iifeButton?.addEventListener("click", () => {
-        iifeLogger.debug("iife debug");
-        iifeLogger.info("iife info");
-        iifeLogger.warn("iife warn", { user: "alice" });
-        iifeUiLogger.info("button clicked");
-        iifeUiLogger.error("ui error", { message: "Example error" });
-
-        // エッジケースの出力
-        const edgeNoPrefix = getLoggerIife("iife-no-prefix");
-        TsSimpleLogger.setLoggerConfig("iife-no-prefix", { prefixEnabled: false });
-        edgeNoPrefix.info("iife edge no prefix");
-
-        const edgeOverride = getLoggerIife("iife-edge-override");
-        setLoggerLevelIife("iife-edge-override", "error");
-        edgeOverride.warn("iife edge hidden warn");
-        edgeOverride.error("iife edge error");
-
-        const iifeValidationLogger = getLoggerIife("iife-validation");
-        TsSimpleLogger.setLoggerConfig("iife-validation", {
-          prefixFormat: "[iife-validation][%loggerName] %logLevel:"
-        });
-
-        // 不正な設定値のテスト
-        try {
-          setDefaultConfigIife({ prefixEnabled: "invalid_iife_prefix_enabled" });
-        } catch (e) {
-          iifeLogger.error(`caught invalid prefixEnabled: ${e.message}`);
-        }
-        try {
-          setDefaultConfigIife(0);
-        } catch (e) {
-          iifeLogger.error(`caught invalid config object: ${e.message}`);
-        }
-        try {
-          TsSimpleLogger.setLoggerConfig("iife-validation", false);
-        } catch (e) {
-          iifeLogger.error(`caught invalid logger config object: ${e.message}`);
-        }
-        try {
-          TsSimpleLogger.setLoggerConfig("iife-validation", { prefixFormat: 123 });
-        } catch (e) {
-          iifeLogger.error(`caught invalid prefixFormat: ${e.message}`);
-        }
-        try {
-          setDefaultConfigIife({ placeholders: [] });
-        } catch (e) {
-          iifeLogger.error(`caught invalid placeholders: ${e.message}`);
-        }
-        try {
-          setDefaultConfigIife({ placeholders: new Map([["%app", "svc"]]) });
-        } catch (e) {
-          iifeLogger.error(`caught invalid placeholder container: ${e.message}`);
-        }
-        try {
-          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%app-name": "svc" } });
-        } catch (e) {
-          iifeLogger.error(`caught invalid placeholder key: ${e.message}`);
-        }
-        try {
-          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%loggerName": "svc" } });
-        } catch (e) {
-          iifeLogger.error(`caught reserved placeholder key: ${e.message}`);
-        }
-        try {
-          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%bad": 123 } });
-        } catch (e) {
-          iifeLogger.error(`caught invalid placeholder value: ${e.message}`);
-        }
-
-        iifeValidationLogger.info("iife validation still works");
-
-        const iifeForeignLogger = getLoggerIife("iife-foreign-realm");
-        let cleanupIifeForeignConfig = () => {};
-        let cleanupIifeForeignPlaceholders = () => {};
-        try {
-          const { foreignObject: foreignConfig, cleanup } = createCrossRealmObject();
-          cleanupIifeForeignConfig = cleanup;
-          const { foreignObject: foreignPlaceholders, cleanup: cleanupPlaceholders } = createCrossRealmObject();
-          cleanupIifeForeignPlaceholders = cleanupPlaceholders;
-          foreignConfig.prefixEnabled = true;
-          foreignConfig.prefixFormat = "[iife-foreign][%app][%loggerName] %logLevel:";
-          foreignPlaceholders["%app"] = "iframe";
-          foreignConfig.placeholders = foreignPlaceholders;
-
-          TsSimpleLogger.setLoggerConfig("iife-foreign-realm", foreignConfig);
-          iifeForeignLogger.info("iife foreign realm still works");
-        } catch (e) {
-          iifeLogger.error(`caught foreign realm config: ${e.message}`);
-        } finally {
-          cleanupIifeForeignPlaceholders();
-          cleanupIifeForeignConfig();
-        }
-
-        // 不正なログレベルのテスト
-        try {
-          setLoggerLevelIife("iife-invalid", "invalid_iife_level");
-        } catch (e) {
-          iifeLogger.error(`caught invalid config: ${e.message}`);
-        }
-      });
-    });
+    document.querySelector("#iife-run")?.addEventListener("click", () => {
+      iifeLogger.trace("iife trace")
+      iifeLogger.debug("iife debug")
+      iifeLogger.info("iife info")
+      iifeLogger.warn("iife warn")
+      iifeLogger.error("iife error", { user: "alice" })
+    })
   </script>
 </body>
 </html>

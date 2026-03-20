@@ -16,10 +16,15 @@ type StaticAsset = {
 function createStaticAssetMap(rootDir: string): Map<string, StaticAsset> {
   const assetMap = new Map<string, StaticAsset>();
   const absoluteRoot = path.resolve(rootDir);
-  const htmlAsset: StaticAsset = {
-    filePath: path.join(absoluteRoot, "src/test/browser-integration/demo.html"),
-    contentType: "text/html; charset=utf-8"
-  };
+  const browserAsset = (fileName: string, contentType: string): StaticAsset => ({
+    filePath: path.join(absoluteRoot, "src/test/browser-integration", fileName),
+    contentType
+  });
+  const demoAsset = browserAsset("demo.html", "text/html; charset=utf-8");
+  const demoStylesAsset = browserAsset("demo.css", "text/css; charset=utf-8");
+  const testModuleAsset = browserAsset("test-module.html", "text/html; charset=utf-8");
+  const testIifeAsset = browserAsset("test-iife.html", "text/html; charset=utf-8");
+  const testSharedAsset = browserAsset("test-shared.js", "application/javascript; charset=utf-8");
   const moduleAsset: StaticAsset = {
     filePath: path.join(absoluteRoot, "dist/index.js"),
     contentType: "application/javascript; charset=utf-8"
@@ -41,7 +46,11 @@ function createStaticAssetMap(rootDir: string): Map<string, StaticAsset> {
     routes.forEach((route) => assetMap.set(route, asset));
   };
 
-  register(["/", "/demo", "/demo.html"], htmlAsset);
+  register(["/", "/demo", "/demo.html"], demoAsset);
+  register(["/demo.css"], demoStylesAsset);
+  register(["/test-module", "/test-module.html"], testModuleAsset);
+  register(["/test-iife", "/test-iife.html"], testIifeAsset);
+  register(["/test-shared.js"], testSharedAsset);
   register(["/index.js"], moduleAsset);
   register(["/index.iife.js"], iifeAsset);
   register(["/index.iife.js.map"], iifeMapAsset);
