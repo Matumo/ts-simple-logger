@@ -31,7 +31,7 @@
 
   const requireFunction = (value, name) => {
     if (typeof value !== "function") {
-      throw new Error(`missing browser test api: ${name}`)
+      throw new TypeError(`missing browser test api: ${name}`)
     }
   }
 
