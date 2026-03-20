@@ -71,6 +71,35 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes(`[${kind}-foreign][iframe][${kind}-foreign-realm] INFO: ${kind} foreign realm still works`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
   expect(logs.some((entry) => entry.text.includes(`caught invalid config: invalid log level: "invalid_${kind}_level"`))).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(
+        `[${kind}-default-snapshot][stable-default-${kind}][${kind}-default-snapshot-existing] INFO: ${kind} default snapshot existing`
+      )
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(
+        `[${kind}-default-snapshot][stable-default-${kind}][${kind}-default-snapshot-new] INFO: ${kind} default snapshot new`
+      )
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(
+        `[${kind}-override-snapshot][stable-override-${kind}][${kind}-override-snapshot] INFO: ${kind} override snapshot input`
+      )
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(
+        `[${kind}-override-snapshot][stable-override-${kind}][${kind}-override-snapshot] INFO: ${kind} override snapshot getter`
+      )
+    )
+  ).toBeTruthy();
+  expect(logs.some((entry) => entry.text.includes("library defaults stable: info|true|(%loggerName) %logLevel:|{}"))).toBeTruthy();
 }
 
 const scenarios = [

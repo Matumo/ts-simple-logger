@@ -136,6 +136,27 @@ type State = {
   loggers: Map<string, Logger>;
 };
 
+function clonePlaceholders(placeholders: Placeholders): Placeholders {
+  return { ...placeholders };
+}
+
+function cloneLoggerConfigFields(config: LoggerConfigFields): LoggerConfigFields {
+  return {
+    ...config,
+    placeholders: clonePlaceholders(config.placeholders),
+  };
+}
+
+function clonePerLoggerConfig(config: PerLoggerConfig): PerLoggerConfig {
+  const clone: PerLoggerConfig = { ...config };
+
+  if (Object.hasOwn(config, "placeholders")) {
+    clone.placeholders = clonePlaceholders(config.placeholders as Placeholders);
+  }
+
+  return clone;
+}
+
 function noop(): void { }
 
 function getConsoleMethod(
@@ -165,7 +186,7 @@ function createState(): State {
   const libraryDefaults = createLibraryDefaults();
   return {
     libraryDefaults,
-    defaults: { ...libraryDefaults, placeholders: { ...libraryDefaults.placeholders } },
+    defaults: cloneLoggerConfigFields(libraryDefaults),
     perLogger: {},
     loggers: new Map(),
   };
@@ -289,7 +310,7 @@ export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
   }
 
   if (Object.hasOwn(partial, "placeholders")) {
-    state.defaults.placeholders = { ...(partial.placeholders as Placeholders) };
+    state.defaults.placeholders = clonePlaceholders(partial.placeholders as Placeholders);
   }
 
   reapplyAllLoggers();
@@ -308,7 +329,13 @@ export function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
   validateConfigPartial(partial);
 
   const current = state.perLogger[key] ?? {};
-  state.perLogger[key] = { ...current, ...partial };
+  const next = { ...current, ...partial };
+
+  if (Object.hasOwn(partial, "placeholders")) {
+    next.placeholders = clonePlaceholders(partial.placeholders as Placeholders);
+  }
+
+  state.perLogger[key] = next;
 
   const logger = state.loggers.get(key);
   if (logger) applyConfigToLogger(logger);
@@ -355,7 +382,7 @@ export function getLogger(name: string): Logger {
  * 参照用関数
  */
 export function getDefaultConfig(): Readonly<LoggerConfigFields> {
-  return getState().defaults;
+  return cloneLoggerConfigFields(getState().defaults);
 }
 export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
   const state = getState();
@@ -363,7 +390,7 @@ export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
   if (!key) {
     throw new Error("logger name must be a non-empty string");
   }
-  return state.perLogger[key] ?? {};
+  return clonePerLoggerConfig(state.perLogger[key] ?? {});
 }
 export function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFields> {
   const key = name?.trim();
@@ -373,5 +400,5 @@ export function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFie
   return resolveEffectiveConfig(key);
 }
 export function getLibraryDefaults(): Readonly<LoggerConfigFields> {
-  return getState().libraryDefaults;
+  return cloneLoggerConfigFields(getState().libraryDefaults);
 }

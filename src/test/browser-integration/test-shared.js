@@ -43,8 +43,19 @@
       requireFunction(api?.setDefaultConfig, "setDefaultConfig")
       requireFunction(api?.setLoggerConfig, "setLoggerConfig")
       requireFunction(api?.setLoggerLevel, "setLoggerLevel")
+      requireFunction(api?.getDefaultConfig, "getDefaultConfig")
+      requireFunction(api?.getLoggerOverrides, "getLoggerOverrides")
+      requireFunction(api?.getLibraryDefaults, "getLibraryDefaults")
 
-      const { getLogger, setDefaultConfig, setLoggerConfig, setLoggerLevel } = api
+      const {
+        getLogger,
+        setDefaultConfig,
+        setLoggerConfig,
+        setLoggerLevel,
+        getDefaultConfig,
+        getLoggerOverrides,
+        getLibraryDefaults
+      } = api
       let tick = 0
 
       setDefaultConfig({
@@ -172,6 +183,52 @@
       } catch (error) {
         logger.error(`caught invalid config: ${error.message}`)
       }
+
+      setDefaultConfig({
+        level: "info",
+        prefixEnabled: true,
+        prefixFormat: `[${kind}-default-snapshot][%app][%loggerName] %logLevel:`,
+        placeholders: { "%app": `stable-default-${kind}` }
+      })
+
+      const existingDefaultSnapshotLogger = getLogger(`${kind}-default-snapshot-existing`)
+      const defaultSnapshot = getDefaultConfig()
+      defaultSnapshot.level = "error"
+      defaultSnapshot.prefixEnabled = false
+      defaultSnapshot.prefixFormat = `[${kind}-tampered-default][%app][%loggerName] %logLevel:`
+      defaultSnapshot.placeholders["%app"] = `tampered-default-${kind}`
+
+      existingDefaultSnapshotLogger.info(`${kind} default snapshot existing`)
+      const newDefaultSnapshotLogger = getLogger(`${kind}-default-snapshot-new`)
+      newDefaultSnapshotLogger.info(`${kind} default snapshot new`)
+
+      const overrideInputPlaceholders = { "%app": `stable-override-${kind}` }
+      setLoggerConfig(`${kind}-override-snapshot`, {
+        prefixFormat: `[${kind}-override-snapshot][%app][%loggerName] %logLevel:`,
+        placeholders: overrideInputPlaceholders
+      })
+      overrideInputPlaceholders["%app"] = `tampered-input-${kind}`
+
+      const overrideSnapshotLogger = getLogger(`${kind}-override-snapshot`)
+      overrideSnapshotLogger.info(`${kind} override snapshot input`)
+
+      const overrideSnapshot = getLoggerOverrides(`${kind}-override-snapshot`)
+      overrideSnapshot.prefixFormat = `[${kind}-tampered-override][%app][%loggerName] %logLevel:`
+      overrideSnapshot.placeholders["%app"] = `tampered-override-${kind}`
+
+      setDefaultConfig({ level: "info" })
+      overrideSnapshotLogger.info(`${kind} override snapshot getter`)
+
+      const libraryDefaults = getLibraryDefaults()
+      libraryDefaults.level = "error"
+      libraryDefaults.prefixEnabled = false
+      libraryDefaults.prefixFormat = `[${kind}-tampered-library]`
+      libraryDefaults.placeholders["%app"] = `tampered-library-${kind}`
+
+      const libraryDefaultsAfter = getLibraryDefaults()
+      console.info(
+        `library defaults stable: ${libraryDefaultsAfter.level}|${libraryDefaultsAfter.prefixEnabled}|${libraryDefaultsAfter.prefixFormat}|${JSON.stringify(libraryDefaultsAfter.placeholders)}`
+      )
 
       setState({ kind, status: "done", error: null })
     } catch (error) {

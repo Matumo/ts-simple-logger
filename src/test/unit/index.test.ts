@@ -565,4 +565,114 @@ describe("設定のバリデーション", () => {
     expect(sut.getLoggerOverrides("sticky").prefixFormat).toBe("<stick %loggerName %logLevel>");
     expect(sut.getLoggerOverrides("sticky").level).toBe("debug");
   });
+
+  it("getDefaultConfigの戻り値を書き換えても内部stateは変わらない", () => {
+    sut.setDefaultConfig({
+      level: "info",
+      prefixFormat: "[defaults][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "base" }
+    });
+
+    const infoSpy = stubConsoleMethod("info");
+    const existingLogger = sut.getLogger("defaults-existing");
+    const defaults = sut.getDefaultConfig() as {
+      level: LogLevel;
+      prefixEnabled: boolean;
+      prefixFormat: string;
+      placeholders: Record<string, string>;
+    };
+
+    defaults.level = "error";
+    defaults.prefixEnabled = false;
+    defaults.prefixFormat = "[tampered-default][%app][%loggerName][%logLevel]";
+    defaults.placeholders["%app"] = "tampered-default";
+
+    existingLogger.info("existing");
+    const newLogger = sut.getLogger("defaults-new");
+    newLogger.info("new");
+
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "[defaults][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "base" }
+    });
+    expectPrefixedConsoleCall(infoSpy, 0, "[defaults][base][defaults-existing][INFO]", "existing");
+    expectPrefixedConsoleCall(infoSpy, 1, "[defaults][base][defaults-new][INFO]", "new");
+  });
+
+  it("getLoggerOverridesの戻り値を書き換えても内部stateは変わらない", () => {
+    const infoSpy = stubConsoleMethod("info");
+
+    sut.setLoggerConfig("override-snapshot", {
+      prefixFormat: "[override][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "svc" }
+    });
+
+    const logger = sut.getLogger("override-snapshot");
+    const overrides = sut.getLoggerOverrides("override-snapshot") as {
+      prefixFormat?: string;
+      placeholders?: Record<string, string>;
+    };
+
+    overrides.prefixFormat = "[tampered-override][%app][%loggerName][%logLevel]";
+    overrides.placeholders!["%app"] = "tampered-override";
+
+    sut.setDefaultConfig({ level: "info" });
+    logger.info("payload");
+
+    expect(sut.getLoggerOverrides("override-snapshot")).toEqual({
+      prefixFormat: "[override][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "svc" }
+    });
+    expectPrefixedConsoleCall(infoSpy, 0, "[override][svc][override-snapshot][INFO]", "payload");
+  });
+
+  it("getLibraryDefaultsの戻り値を書き換えても内部stateは変わらない", () => {
+    const libraryDefaults = sut.getLibraryDefaults() as {
+      level: LogLevel;
+      prefixEnabled: boolean;
+      prefixFormat: string;
+      placeholders: Record<string, string>;
+    };
+
+    libraryDefaults.level = "error";
+    libraryDefaults.prefixEnabled = false;
+    libraryDefaults.prefixFormat = "[tampered-library]";
+    libraryDefaults.placeholders["%app"] = "tampered-library";
+
+    expect(sut.getLibraryDefaults()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: {}
+    });
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: {}
+    });
+  });
+
+  it("setLoggerConfigの入力placeholdersを後から書き換えても内部stateに漏れない", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const placeholders = { "%app": "svc" };
+
+    sut.setLoggerConfig("input-clone", {
+      prefixFormat: "[input-clone][%app][%loggerName][%logLevel]",
+      placeholders
+    });
+
+    placeholders["%app"] = "tampered-input";
+
+    const logger = sut.getLogger("input-clone");
+    logger.info("payload");
+
+    expect(sut.getLoggerOverrides("input-clone")).toEqual({
+      prefixFormat: "[input-clone][%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "svc" }
+    });
+    expectPrefixedConsoleCall(infoSpy, 0, "[input-clone][svc][input-clone][INFO]", "payload");
+  });
 });
