@@ -63,6 +63,18 @@ test.describe("ブラウザ統合テスト", () => {
     expect(logs.some((entry) => entry.text === "module edge no prefix")).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("module edge hidden warn"))).toBeFalsy();
     expect(logs.some((entry) => entry.text.includes("[module-edge-override] ERROR: [module-") && entry.text.includes("module edge error"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid prefixEnabled: invalid prefixEnabled: \"invalid_module_prefix_enabled\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid config object: invalid config: 0"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid logger config object: invalid config: false"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid prefixFormat: invalid prefixFormat: 123"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholders: invalid placeholders: []"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder container: invalid placeholders: [object Map]"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder key: invalid placeholder key: \"%app-name\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught reserved placeholder key: reserved placeholder key: \"%loggerName\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder value: invalid placeholder value for \"%bad\": 123"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[module-validation][module-validation] INFO: module validation still works"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[module-foreign][iframe][module-foreign-realm] INFO: module foreign realm still works"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
     expect(logs.some((entry) => entry.text.includes("caught invalid config: invalid log level: \"invalid_level_from_browser\""))).toBeTruthy();
 
     expect(logs.some((entry) => entry.text.includes("[iife][browser-iife][iife-demo] INFO: [iife-"))).toBeTruthy();
@@ -73,6 +85,18 @@ test.describe("ブラウザ統合テスト", () => {
     expect(logs.some((entry) => entry.text === "iife edge no prefix")).toBeTruthy();
     expect(logs.some((entry) => entry.text.includes("iife edge hidden warn"))).toBeFalsy();
     expect(logs.some((entry) => entry.text.includes("[iife-edge-override] ERROR: [iife-") && entry.text.includes("iife edge error"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid prefixEnabled: invalid prefixEnabled: \"invalid_iife_prefix_enabled\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid config object: invalid config: 0"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid logger config object: invalid config: false"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid prefixFormat: invalid prefixFormat: 123"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholders: invalid placeholders: []"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder container: invalid placeholders: [object Map]"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder key: invalid placeholder key: \"%app-name\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught reserved placeholder key: reserved placeholder key: \"%loggerName\""))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught invalid placeholder value: invalid placeholder value for \"%bad\": 123"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[iife-validation][iife-validation] INFO: iife validation still works"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("[iife-foreign][iframe][iife-foreign-realm] INFO: iife foreign realm still works"))).toBeTruthy();
+    expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
     expect(logs.some((entry) => entry.text.includes("caught invalid config: invalid log level: \"invalid_iife_level\""))).toBeTruthy();
   });
 });

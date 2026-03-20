@@ -113,6 +113,25 @@
 
     const moduleLogger = getLogger("module-demo");
     const moduleNetworkLogger = getLogger("module-network");
+
+    const createCrossRealmObject = () => {
+      const frame = document.createElement("iframe");
+      frame.style.display = "none";
+      document.body.append(frame);
+
+      const foreignWindow = frame.contentWindow;
+      if (!foreignWindow) {
+        frame.remove();
+        throw new Error("iframe contentWindow is unavailable");
+      }
+
+      const foreignObject = new foreignWindow.Object();
+      return {
+        foreignObject,
+        cleanup: () => frame.remove()
+      };
+    };
+
     setLoggerConfig("module-demo", {
       level: "trace"
     });
@@ -128,7 +147,7 @@
       moduleNetworkLogger.info("network info (hidden because level=warn)");
       moduleNetworkLogger.warn("network warning");
       moduleNetworkLogger.error("network error", { status: 500 });
-      
+
       // エッジケースの出力
       const edgeNoPrefix = getLogger("module-no-prefix");
       setLoggerConfig("module-no-prefix", { prefixEnabled: false });
@@ -138,6 +157,82 @@
       setLoggerConfig("module-edge-override", { level: "error" });
       edgeOverride.warn("module edge hidden warn");
       edgeOverride.error("module edge error");
+
+      const moduleValidationLogger = getLogger("module-validation");
+      setLoggerConfig("module-validation", {
+        prefixFormat: "[module-validation][%loggerName] %logLevel:"
+      });
+
+      // 不正な設定値のテスト
+      try {
+        setDefaultConfig({ prefixEnabled: "invalid_module_prefix_enabled" });
+      } catch (e) {
+        moduleLogger.error(`caught invalid prefixEnabled: ${e.message}`);
+      }
+      try {
+        setDefaultConfig(0);
+      } catch (e) {
+        moduleLogger.error(`caught invalid config object: ${e.message}`);
+      }
+      try {
+        setLoggerConfig("module-validation", false);
+      } catch (e) {
+        moduleLogger.error(`caught invalid logger config object: ${e.message}`);
+      }
+      try {
+        setLoggerConfig("module-validation", { prefixFormat: 123 });
+      } catch (e) {
+        moduleLogger.error(`caught invalid prefixFormat: ${e.message}`);
+      }
+      try {
+        setDefaultConfig({ placeholders: [] });
+      } catch (e) {
+        moduleLogger.error(`caught invalid placeholders: ${e.message}`);
+      }
+      try {
+        setDefaultConfig({ placeholders: new Map([["%app", "svc"]]) });
+      } catch (e) {
+        moduleLogger.error(`caught invalid placeholder container: ${e.message}`);
+      }
+      try {
+        setLoggerConfig("module-validation", { placeholders: { "%app-name": "svc" } });
+      } catch (e) {
+        moduleLogger.error(`caught invalid placeholder key: ${e.message}`);
+      }
+      try {
+        setLoggerConfig("module-validation", { placeholders: { "%loggerName": "svc" } });
+      } catch (e) {
+        moduleLogger.error(`caught reserved placeholder key: ${e.message}`);
+      }
+      try {
+        setLoggerConfig("module-validation", { placeholders: { "%bad": 123 } });
+      } catch (e) {
+        moduleLogger.error(`caught invalid placeholder value: ${e.message}`);
+      }
+
+      moduleValidationLogger.info("module validation still works");
+
+      const moduleForeignLogger = getLogger("module-foreign-realm");
+      let cleanupModuleForeignConfig = () => {};
+      let cleanupModuleForeignPlaceholders = () => {};
+      try {
+        const { foreignObject: foreignConfig, cleanup } = createCrossRealmObject();
+        cleanupModuleForeignConfig = cleanup;
+        const { foreignObject: foreignPlaceholders, cleanup: cleanupPlaceholders } = createCrossRealmObject();
+        cleanupModuleForeignPlaceholders = cleanupPlaceholders;
+        foreignConfig.prefixEnabled = true;
+        foreignConfig.prefixFormat = "[module-foreign][%app][%loggerName] %logLevel:";
+        foreignPlaceholders["%app"] = "iframe";
+        foreignConfig.placeholders = foreignPlaceholders;
+
+        setLoggerConfig("module-foreign-realm", foreignConfig);
+        moduleForeignLogger.info("module foreign realm still works");
+      } catch (e) {
+        moduleLogger.error(`caught foreign realm config: ${e.message}`);
+      } finally {
+        cleanupModuleForeignPlaceholders();
+        cleanupModuleForeignConfig();
+      }
 
       // 不正なログレベルのテスト
       try {
@@ -171,6 +266,24 @@
 
       const iifeLogger = getLoggerIife("iife-demo");
       const iifeUiLogger = getLoggerIife("iife-ui");
+      const createCrossRealmObject = () => {
+        const frame = document.createElement("iframe");
+        frame.style.display = "none";
+        document.body.append(frame);
+
+        const foreignWindow = frame.contentWindow;
+        if (!foreignWindow) {
+          frame.remove();
+          throw new Error("iframe contentWindow is unavailable");
+        }
+
+        const foreignObject = new foreignWindow.Object();
+        return {
+          foreignObject,
+          cleanup: () => frame.remove()
+        };
+      };
+
       setLoggerLevelIife("iife-ui", "info");
 
       const iifeButton = document.querySelector("#iife-run");
@@ -190,6 +303,82 @@
         setLoggerLevelIife("iife-edge-override", "error");
         edgeOverride.warn("iife edge hidden warn");
         edgeOverride.error("iife edge error");
+
+        const iifeValidationLogger = getLoggerIife("iife-validation");
+        TsSimpleLogger.setLoggerConfig("iife-validation", {
+          prefixFormat: "[iife-validation][%loggerName] %logLevel:"
+        });
+
+        // 不正な設定値のテスト
+        try {
+          setDefaultConfigIife({ prefixEnabled: "invalid_iife_prefix_enabled" });
+        } catch (e) {
+          iifeLogger.error(`caught invalid prefixEnabled: ${e.message}`);
+        }
+        try {
+          setDefaultConfigIife(0);
+        } catch (e) {
+          iifeLogger.error(`caught invalid config object: ${e.message}`);
+        }
+        try {
+          TsSimpleLogger.setLoggerConfig("iife-validation", false);
+        } catch (e) {
+          iifeLogger.error(`caught invalid logger config object: ${e.message}`);
+        }
+        try {
+          TsSimpleLogger.setLoggerConfig("iife-validation", { prefixFormat: 123 });
+        } catch (e) {
+          iifeLogger.error(`caught invalid prefixFormat: ${e.message}`);
+        }
+        try {
+          setDefaultConfigIife({ placeholders: [] });
+        } catch (e) {
+          iifeLogger.error(`caught invalid placeholders: ${e.message}`);
+        }
+        try {
+          setDefaultConfigIife({ placeholders: new Map([["%app", "svc"]]) });
+        } catch (e) {
+          iifeLogger.error(`caught invalid placeholder container: ${e.message}`);
+        }
+        try {
+          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%app-name": "svc" } });
+        } catch (e) {
+          iifeLogger.error(`caught invalid placeholder key: ${e.message}`);
+        }
+        try {
+          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%loggerName": "svc" } });
+        } catch (e) {
+          iifeLogger.error(`caught reserved placeholder key: ${e.message}`);
+        }
+        try {
+          TsSimpleLogger.setLoggerConfig("iife-validation", { placeholders: { "%bad": 123 } });
+        } catch (e) {
+          iifeLogger.error(`caught invalid placeholder value: ${e.message}`);
+        }
+
+        iifeValidationLogger.info("iife validation still works");
+
+        const iifeForeignLogger = getLoggerIife("iife-foreign-realm");
+        let cleanupIifeForeignConfig = () => {};
+        let cleanupIifeForeignPlaceholders = () => {};
+        try {
+          const { foreignObject: foreignConfig, cleanup } = createCrossRealmObject();
+          cleanupIifeForeignConfig = cleanup;
+          const { foreignObject: foreignPlaceholders, cleanup: cleanupPlaceholders } = createCrossRealmObject();
+          cleanupIifeForeignPlaceholders = cleanupPlaceholders;
+          foreignConfig.prefixEnabled = true;
+          foreignConfig.prefixFormat = "[iife-foreign][%app][%loggerName] %logLevel:";
+          foreignPlaceholders["%app"] = "iframe";
+          foreignConfig.placeholders = foreignPlaceholders;
+
+          TsSimpleLogger.setLoggerConfig("iife-foreign-realm", foreignConfig);
+          iifeForeignLogger.info("iife foreign realm still works");
+        } catch (e) {
+          iifeLogger.error(`caught foreign realm config: ${e.message}`);
+        } finally {
+          cleanupIifeForeignPlaceholders();
+          cleanupIifeForeignConfig();
+        }
 
         // 不正なログレベルのテスト
         try {
