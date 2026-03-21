@@ -145,6 +145,16 @@ describe("Node統合テスト", () => {
     noPrefixLogger.info("raw line");
     expect(outputs.includes("info raw line")).toBeTruthy();
 
+    setDefaultConfig({ prefixEnabled: true });
+    const resolvedEmptyPrefixLogger = getLogger("node-resolved-empty-prefix");
+    setLoggerConfig("node-resolved-empty-prefix", {
+      prefixFormat: "%empty",
+      placeholders: { "%empty": "" }
+    });
+
+    resolvedEmptyPrefixLogger.info("resolved empty prefix line");
+    expect(outputs.includes("info %s  resolved empty prefix line")).toBeTruthy();
+
     // 4: グローバルレベル vs 個別ロガーの上書き
     setDefaultConfig({ level: "error", prefixEnabled: true });
 

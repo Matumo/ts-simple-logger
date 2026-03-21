@@ -56,6 +56,7 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes(`[${kind}][browser-${kind}][${kind}-demo] TRACE: [${kind}-`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}][browser-${kind}][${kind}-network] WARN: [${kind}-`))).toBeTruthy();
   expect(logs.some((entry) => entry.text === `${kind} edge no prefix`)).toBeTruthy();
+  expect(logs.some((entry) => entry.text === `%s  ${kind} resolved empty prefix`)).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`${kind} edge hidden warn`))).toBeFalsy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-edge-override] ERROR: [${kind}-`) && entry.text.includes(`${kind} edge error`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`caught invalid prefixEnabled: invalid prefixEnabled: "invalid_${kind}_prefix_enabled"`))).toBeTruthy();
