@@ -55,6 +55,18 @@ async function readScenarioState(page: Page): Promise<{ kind: string | null; sta
 function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes(`[${kind}][browser-${kind}][${kind}-demo] TRACE: [${kind}-`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}][browser-${kind}][${kind}-network] WARN: [${kind}-`))).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}-default-merge][merged-${kind}][default-merge][${kind}-`) &&
+      entry.text.includes(`[${kind}-default-merge] INFO: ${kind} default placeholder merge works`)
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}-logger-merge][service-${kind}-v2][warmup][${kind}-`) &&
+      entry.text.includes(`[${kind}-logger-merge] INFO: ${kind} logger placeholder merge works`)
+    )
+  ).toBeTruthy();
   expect(logs.some((entry) => entry.text === `${kind} edge no prefix`)).toBeTruthy();
   expect(logs.some((entry) => entry.text === `%s  ${kind} resolved empty prefix`)).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`${kind} edge hidden warn`))).toBeFalsy();

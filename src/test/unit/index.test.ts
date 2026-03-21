@@ -547,18 +547,56 @@ describe("設定のバリデーション", () => {
     });
   });
 
-  it("後からデフォルト値を変更した場合は全ロガーに反映する", () => {
+  it("後からデフォルト値を変更した場合はdefault placeholdersをマージして全ロガーに反映する", () => {
+    sut.setDefaultConfig({
+      placeholders: { "%base": "root" }
+    });
+
     const logger = sut.getLogger("placeholders");
     const infoSpy = stubConsoleMethod("info");
 
     sut.setDefaultConfig({
       placeholders: { "%new": "value" },
-      prefixFormat: "[%new][%logLevel]"
+      prefixFormat: "[%base][%new][%logLevel]"
     });
-    logger.info("after replace");
+    logger.info("after merge");
 
-    expectPrefixedConsoleCall(infoSpy, 0, "[value][INFO]", "after replace");
-    expect(sut.getDefaultConfig().placeholders).toEqual({ "%new": "value" });
+    expectPrefixedConsoleCall(infoSpy, 0, "[root][value][INFO]", "after merge");
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%base": "root", "%new": "value" });
+  });
+
+  it("setDefaultConfigのdefault placeholders更新は同名キーだけを上書きし未指定キーを保持する", () => {
+    sut.setDefaultConfig({
+      placeholders: { "%app": "base", "%keep": "shared" }
+    });
+
+    sut.setDefaultConfig({
+      placeholders: { "%app": "override" }
+    });
+
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%app": "override", "%keep": "shared" });
+  });
+
+  it("setLoggerConfigのplaceholders更新は同名キーだけを上書きし未指定キーを保持する", () => {
+    const infoSpy = stubConsoleMethod("info");
+
+    sut.setLoggerConfig("placeholder-override-merge", {
+      prefixFormat: "[%app][%keep][%loggerName][%logLevel]",
+      placeholders: { "%app": "base", "%keep": "shared" }
+    });
+
+    sut.setLoggerConfig("placeholder-override-merge", {
+      placeholders: { "%app": "override" }
+    });
+
+    const logger = sut.getLogger("placeholder-override-merge");
+    logger.info("after merge");
+
+    expect(sut.getLoggerOverrides("placeholder-override-merge")).toEqual({
+      prefixFormat: "[%app][%keep][%loggerName][%logLevel]",
+      placeholders: { "%app": "override", "%keep": "shared" }
+    });
+    expectPrefixedConsoleCall(infoSpy, 0, "[override][shared][placeholder-override-merge][INFO]", "after merge");
   });
 
   it("後からデフォルト値を変更した場合も個別設定しているものは変更しない", () => {

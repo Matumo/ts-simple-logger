@@ -80,6 +80,39 @@
       secondaryLogger.warn(`${kind} network warning`)
       secondaryLogger.error(`${kind} network error`, { status: 500 })
 
+      setDefaultConfig({
+        placeholders: {
+          "%app-name": `merged-${kind}`,
+          "%phase": "default-merge"
+        },
+        prefixFormat: `[${kind}-default-merge][%app-name][%phase][%tick][%loggerName] %logLevel:`
+      })
+      const defaultMergeLogger = getLogger(`${kind}-default-merge`)
+      defaultMergeLogger.info(`${kind} default placeholder merge works`)
+      setLoggerConfig(`${kind}-logger-merge`, {
+        placeholders: {
+          "%service": `service-${kind}`,
+          "%phase": "warmup"
+        },
+        prefixFormat: `[${kind}-logger-merge][%service][%phase][%tick][%loggerName] %logLevel:`
+      })
+      setLoggerConfig(`${kind}-logger-merge`, {
+        placeholders: {
+          "%service": `service-${kind}-v2`
+        }
+      })
+      const loggerMergeLogger = getLogger(`${kind}-logger-merge`)
+      loggerMergeLogger.info(`${kind} logger placeholder merge works`)
+      setDefaultConfig({
+        level: "trace",
+        prefixEnabled: true,
+        prefixFormat: `[${kind}][%app-name][%loggerName] %logLevel: [%tick]`,
+        placeholders: {
+          "%app-name": `browser-${kind}`,
+          "%tick": () => `${kind}-${++tick}`
+        }
+      })
+
       const edgeNoPrefix = getLogger(`${kind}-no-prefix`)
       setLoggerConfig(`${kind}-no-prefix`, { prefixEnabled: false })
       edgeNoPrefix.info(`${kind} edge no prefix`)
