@@ -65,10 +65,10 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes("caught invalid prefixFormat: invalid prefixFormat: 123"))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught invalid placeholders: invalid placeholders: []"))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught invalid placeholder container: invalid placeholders: [object Map]"))).toBeTruthy();
-  expect(logs.some((entry) => entry.text.includes('caught invalid placeholder key: invalid placeholder key: "%app-name"'))).toBeTruthy();
+  expect(logs.some((entry) => entry.text.includes('caught invalid placeholder key: invalid placeholder key: "%app.name"'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes('caught reserved placeholder key: reserved placeholder key: "%loggerName"'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes('caught invalid placeholder value: invalid placeholder value for "%bad": 123'))).toBeTruthy();
-  expect(logs.some((entry) => entry.text.includes(`[${kind}-validation][${kind}-validation] INFO: ${kind} validation still works`))).toBeTruthy();
+  expect(logs.some((entry) => entry.text.includes(`[${kind}-validation][${kind}][${kind}-validation] INFO: ${kind} validation still works`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-foreign][iframe][${kind}-foreign-realm] INFO: ${kind} foreign realm still works`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
   expect(logs.some((entry) => entry.text.includes(`caught invalid config: invalid log level: "invalid_${kind}_level"`))).toBeTruthy();

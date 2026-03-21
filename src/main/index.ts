@@ -3,7 +3,7 @@
 //  - prefixFormat のプレースホルダ
 //    - %loggerName: ロガー名
 //    - %logLevel: ログレベル
-//    - 任意のプレースホルダー（例: %appName）を placeholders 経由で指定
+//    - 任意のプレースホルダー（例: %appName, %app-name）を placeholders 経由で指定
 //    - %%: %
 // - getLogger でロガーを取得する。
 
@@ -21,7 +21,9 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
 };
 
 const VALID_LEVELS = new Set<string>(Object.keys(LEVEL_ORDER));
-const PLACEHOLDER_KEY_PATTERN = /^%\w+$/;
+const PLACEHOLDER_KEY_BODY_PATTERN = "[A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*";
+const PLACEHOLDER_KEY_PATTERN = new RegExp(`^%${PLACEHOLDER_KEY_BODY_PATTERN}$`);
+const PLACEHOLDER_TOKEN_PATTERN = new RegExp(`%%|%${PLACEHOLDER_KEY_BODY_PATTERN}`, "g");
 const RESERVED_PLACEHOLDER_KEYS = new Set<string>(["%%", "%loggerName", "%logLevel"]);
 
 function isPlainObject(value: unknown): value is Record<PropertyKey, unknown> {
@@ -205,7 +207,7 @@ function formatPrefix(
   placeholders: Placeholders,
 ): string {
   const lvl = level.toUpperCase();
-  return template.replaceAll(/%%|%\w+/g, (token) => {
+  return template.replaceAll(PLACEHOLDER_TOKEN_PATTERN, (token) => {
     if (token === "%%") return "%";
     if (token === "%loggerName") return loggerName;
     if (token === "%logLevel") return lvl;

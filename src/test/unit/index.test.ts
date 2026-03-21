@@ -132,12 +132,12 @@ describe("ロガー生成とバリデーション", () => {
 });
 
 describe("ログ出力の挙動", () => {
-  it("プレースホルダーとエスケープを含むプレフィックスを整形する", () => {
+  it("ハイフンを含むプレースホルダーとエスケープを含むプレフィックスを整形する", () => {
     sut.setDefaultConfig({
-      prefixFormat: "[%%][%loggerName][%logLevel][%appName][%custom][%missing]",
-      placeholders: { "%appName": "root", "%custom": "default" }
+      prefixFormat: "[%%][%loggerName][%logLevel][%app-name][%custom-value][%missing]",
+      placeholders: { "%app-name": "root", "%custom-value": "default" }
     });
-    sut.setLoggerConfig("svc", { placeholders: { "%custom": "override" } });
+    sut.setLoggerConfig("svc", { placeholders: { "%custom-value": "override" } });
 
     const infoSpy = stubConsoleMethod("info");
     const logger = sut.getLogger("svc");
@@ -430,9 +430,9 @@ describe("設定のバリデーション", () => {
   it("setLoggerConfigに不正なplaceholderキーを渡すと拒否する", () => {
     expect(() =>
       sut.setLoggerConfig("test-invalid", {
-        placeholders: { "%app-name": "svc" } as unknown as Record<string, string>
+        placeholders: { "%app.name": "svc" } as unknown as Record<string, string>
       })
-    ).toThrow("invalid placeholder key: \"%app-name\"");
+    ).toThrow("invalid placeholder key: \"%app.name\"");
     expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
   });
 

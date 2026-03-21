@@ -70,13 +70,13 @@ describe("Node統合テスト", () => {
     } = mod;
 
     let tick = 0;
-    const format = "[node %%][%app][%loggerName][%logLevel][%tick]";
+    const format = "[node %%][%app-name][%loggerName][%logLevel][%tick]";
 
     setDefaultConfig({
       level: "debug",
       prefixEnabled: true,
       prefixFormat: format,
-      placeholders: { "%app": "demo-app", "%tick": () => `tick-${++tick}` }
+      placeholders: { "%app-name": "demo-app", "%tick": () => `tick-${++tick}` }
     });
 
     const logger = getLogger("node-test");
@@ -92,7 +92,8 @@ describe("Node統合テスト", () => {
     // 2: バリデーションチェック
     const validationLogger = getLogger("node-validation");
     setLoggerConfig("node-validation", {
-      prefixFormat: "[node-validation][%loggerName][%logLevel]"
+      prefixFormat: "[node-validation][%app-name][%loggerName][%logLevel]",
+      placeholders: { "%app-name": "svc" }
     });
 
     // @ts-expect-error 型エラーを無視して不正な値を投入する
@@ -109,8 +110,8 @@ describe("Node統合テスト", () => {
     expect(() => setDefaultConfig({ placeholders: [] })).toThrow("invalid placeholders: []");
     // @ts-expect-error 型エラーを無視して不正な値を投入する
     expect(() => setDefaultConfig({ placeholders: new Map([["%app", "svc"]]) })).toThrow("invalid placeholders: [object Map]");
-    expect(() => setLoggerConfig("node-validation", { placeholders: { "%app-name": "svc" } })).toThrow(
-      "invalid placeholder key: \"%app-name\""
+    expect(() => setLoggerConfig("node-validation", { placeholders: { "%app.name": "svc" } })).toThrow(
+      "invalid placeholder key: \"%app.name\""
     );
     expect(() => setLoggerConfig("node-validation", { placeholders: { "%loggerName": "svc" } })).toThrow(
       "reserved placeholder key: \"%loggerName\""
@@ -122,7 +123,7 @@ describe("Node統合テスト", () => {
 
     validationLogger.info("validation still works");
     expect(
-      outputs.some((line) => line.includes("[node-validation][node-validation][INFO] validation still works"))
+      outputs.some((line) => line.includes("[node-validation][svc][node-validation][INFO] validation still works"))
     ).toBeTruthy();
 
     const foreignRealmLogger = getLogger("node-foreign-realm");
