@@ -22,6 +22,41 @@ npm install @matumo/ts-simple-logger
 ```
 
 
+## Loading
+
+Choose the loading style for your environment. After loading, the API usage is the same.
+
+ESM:
+
+```ts
+import { getLogger, setDefaultConfig, setLoggerConfig } from "@matumo/ts-simple-logger";
+```
+
+CommonJS / CJS:
+
+```js
+const { getLogger, setDefaultConfig, setLoggerConfig } = require("@matumo/ts-simple-logger");
+```
+
+Web (ESM):
+
+```html
+<script type="module">
+  import { getLogger, setDefaultConfig, setLoggerConfig } from "./dist/index.js";
+</script>
+```
+
+Web (IIFE):
+
+```html
+<script src="./dist/index.iife.js"></script>
+<script>
+  const { getLogger, setDefaultConfig, setLoggerConfig } = globalThis.TsSimpleLogger;
+</script>
+```
+
+For browser usage, you can also serve `dist/index.js` or `dist/index.iife.js` from a CDN such as [jsDelivr](https://cdn.jsdelivr.net/npm/@matumo/ts-simple-logger/).
+
 ## Usage
 
 ```ts
