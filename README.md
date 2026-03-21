@@ -121,13 +121,8 @@ type LoggerConfig = {
   prefixFormat: string;
   placeholders: Placeholders;
 };
-// Per-logger overrides (all fields optional).
-type PerLoggerConfig = {
-  level?: LogLevel;
-  prefixEnabled?: boolean;
-  prefixFormat?: string;
-  placeholders?: Placeholders;
-};
+// Partial update for defaults or per-logger overrides.
+type LoggerConfigPatch = Partial<LoggerConfig>;
 ```
 
 API signatures:
@@ -137,9 +132,9 @@ API signatures:
 getLogger(name: string): Logger;
 
 // Update global defaults.
-setDefaultConfig(partial: PerLoggerConfig): void;
+setDefaultConfig(patch: LoggerConfigPatch): void;
 // Update per-logger overrides.
-setLoggerConfig(name: string, partial: PerLoggerConfig): void;
+setLoggerConfig(name: string, patch: LoggerConfigPatch): void;
 
 // Set global log level shortcut.
 setLogLevel(level: LogLevel): void;
@@ -149,7 +144,7 @@ setLoggerLevel(name: string, level: LogLevel): void;
 // Get current defaults.
 getDefaultConfig(): Readonly<LoggerConfig>;
 // Get per-logger overrides for a logger.
-getLoggerOverrides(name: string): Readonly<PerLoggerConfig>;
+getLoggerOverrides(name: string): Readonly<LoggerConfigPatch>;
 // Get resolved config (defaults + overrides) for a logger.
 getEffectiveLoggerConfig(name: string): Readonly<LoggerConfig>;
 // Get library defaults (initial baseline).
