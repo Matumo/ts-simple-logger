@@ -7,9 +7,9 @@
 //    - %%: %
 // - getLogger でロガーを取得する。
 
-export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
-export type PlaceholderValue = string | (() => string);
-export type Placeholders = Record<string, PlaceholderValue>;
+type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
+type PlaceholderValue = string | (() => string);
+type Placeholders = Record<string, PlaceholderValue>;
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
   trace: 10,
@@ -120,9 +120,9 @@ type LoggerConfigFields = {
   placeholders: Placeholders;
 };
 
-export type PerLoggerConfig = Partial<LoggerConfigFields>;
+type PerLoggerConfig = Partial<LoggerConfigFields>;
 
-export type Logger = {
+type Logger = {
   readonly name: string;
   trace: (...args: unknown[]) => void;
   debug: (...args: unknown[]) => void;
@@ -294,7 +294,7 @@ function validateConfigPartial(partial: Partial<LoggerConfigFields>): void {
 /**
  * デフォルト設定関数
  */
-export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
+function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
   const state = getState();
   validateConfigPartial(partial);
 
@@ -320,7 +320,7 @@ export function setDefaultConfig(partial: Partial<LoggerConfigFields>): void {
 /**
  * ロガー設定関数
  */
-export function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
+function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
   const state = getState();
   const key = name?.trim();
   if (!key) {
@@ -345,17 +345,17 @@ export function setLoggerConfig(name: string, partial: PerLoggerConfig): void {
 /**
  * ユーティリティ関数
  */
-export function setLogLevel(level: LogLevel): void {
+function setLogLevel(level: LogLevel): void {
   setDefaultConfig({ level });
 }
-export function setLoggerLevel(name: string, level: LogLevel): void {
+function setLoggerLevel(name: string, level: LogLevel): void {
   setLoggerConfig(name, { level });
 }
 
 /**
  * ロガー取得関数
  */
-export function getLogger(name: string): Logger {
+function getLogger(name: string): Logger {
   const state = getState();
   const key = name?.trim();
   if (!key) {
@@ -382,10 +382,10 @@ export function getLogger(name: string): Logger {
 /**
  * 参照用関数
  */
-export function getDefaultConfig(): Readonly<LoggerConfigFields> {
+function getDefaultConfig(): Readonly<LoggerConfigFields> {
   return cloneLoggerConfigFields(getState().defaults);
 }
-export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
+function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
   const state = getState();
   const key = name?.trim();
   if (!key) {
@@ -393,13 +393,36 @@ export function getLoggerOverrides(name: string): Readonly<PerLoggerConfig> {
   }
   return clonePerLoggerConfig(state.perLogger[key] ?? {});
 }
-export function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFields> {
+function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfigFields> {
   const key = name?.trim();
   if (!key) {
     throw new Error("logger name must be a non-empty string");
   }
   return resolveEffectiveConfig(key);
 }
-export function getLibraryDefaults(): Readonly<LoggerConfigFields> {
+function getLibraryDefaults(): Readonly<LoggerConfigFields> {
   return cloneLoggerConfigFields(getState().libraryDefaults);
 }
+
+/**
+ * エクスポート
+ */
+export {
+  getDefaultConfig,
+  getEffectiveLoggerConfig,
+  getLibraryDefaults,
+  getLogger,
+  getLoggerOverrides,
+  setDefaultConfig,
+  setLogLevel,
+  setLoggerConfig,
+  setLoggerLevel,
+};
+
+export type {
+  LogLevel,
+  Logger,
+  PerLoggerConfig,
+  PlaceholderValue,
+  Placeholders,
+};
