@@ -61,9 +61,9 @@
       setDefaultConfig({
         level: "trace",
         prefixEnabled: true,
-        prefixFormat: `[${kind}][%app][%loggerName] %logLevel: [%tick]`,
+        prefixFormat: `[${kind}][%app-name][%loggerName] %logLevel: [%tick]`,
         placeholders: {
-          "%app": `browser-${kind}`,
+          "%app-name": `browser-${kind}`,
           "%tick": () => `${kind}-${++tick}`
         }
       })
@@ -99,7 +99,8 @@
 
       const validationLogger = getLogger(`${kind}-validation`)
       setLoggerConfig(`${kind}-validation`, {
-        prefixFormat: `[${kind}-validation][%loggerName] %logLevel:`
+        prefixFormat: `[${kind}-validation][%app-name][%loggerName] %logLevel:`,
+        placeholders: { "%app-name": kind }
       })
 
       try {
@@ -139,7 +140,7 @@
       }
 
       try {
-        setLoggerConfig(`${kind}-validation`, { placeholders: { "%app-name": "svc" } })
+        setLoggerConfig(`${kind}-validation`, { placeholders: { "%app.name": "svc" } })
       } catch (error) {
         logger.error(`caught invalid placeholder key: ${error.message}`)
       }
