@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
+  <title>ts-simple-logger browser test (module)</title>
+</head>
+<body>
+  <p>Running browser integration scenario for the ES module bundle.</p>
+
+  <script src="./test-shared.js"></script>
+  <script type="module">
+    import {
+      getLogger,
+      setDefaultConfig,
+      setLoggerConfig,
+      setLoggerLevel,
+      getDefaultConfig,
+      getLoggerOverrides,
+      getLibraryDefaults
+    } from "./index.js"
+
+    globalThis.TsSimpleLoggerBrowserTest.runScenario({
+      kind: "module",
+      api: {
+        getLogger,
+        setDefaultConfig,
+        setLoggerConfig,
+        setLoggerLevel,
+        getDefaultConfig,
+        getLoggerOverrides,
+        getLibraryDefaults
+      }
+    })
+  </script>
+</body>
+</html>

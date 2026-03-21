@@ -22,6 +22,41 @@ npm install @matumo/ts-simple-logger
 ```
 
 
+## Loading
+
+Choose the loading style for your environment. After loading, the API usage is the same.
+
+ESM:
+
+```ts
+import { getLogger, setDefaultConfig, setLoggerConfig } from "@matumo/ts-simple-logger";
+```
+
+CommonJS / CJS:
+
+```js
+const { getLogger, setDefaultConfig, setLoggerConfig } = require("@matumo/ts-simple-logger");
+```
+
+Web (ESM):
+
+```html
+<script type="module">
+  import { getLogger, setDefaultConfig, setLoggerConfig } from "./dist/index.js";
+</script>
+```
+
+Web (IIFE):
+
+```html
+<script src="./dist/index.iife.js"></script>
+<script>
+  const { getLogger, setDefaultConfig, setLoggerConfig } = globalThis.TsSimpleLogger;
+</script>
+```
+
+For browser usage, you can also serve `dist/index.js` or `dist/index.iife.js` from a CDN such as [jsDelivr](https://cdn.jsdelivr.net/npm/@matumo/ts-simple-logger/).
+
 ## Usage
 
 ```ts
@@ -68,16 +103,25 @@ Log levels: `trace`, `debug`, `info`, `warn`, `error`, `silent`
 Placeholders:
 
 - Built-in: `%loggerName`, `%logLevel`
-- Custom keys must include the leading `%` (example: `%appName`)
-- Unknown placeholders remain as-is
-- Use `%%` to output a literal `%`
+- Custom keys must start with `%`
+  - After `%`, you can use:
+    - ASCII letters: `A-Z`, `a-z`
+    - Digits: `0-9`
+    - Underscore: `_`
+    - Hyphen: `-` between segments
+  - Examples: `%appName`, `%app-name`, `%APP_2`
+- Reserved placeholders `%loggerName` and `%logLevel` cannot be overridden, and the escape token `%%` is also reserved
+- Unknown placeholders remain as-is; use `%%` for a literal `%`
 - Placeholder functions are evaluated at log time
-- Per-logger placeholders are merged with defaults, with per-logger values taking precedence on key conflicts
+- Default and per-logger placeholder updates are merged by key
+- Effective per-logger placeholders merge defaults and overrides, with per-logger values taking precedence on key conflicts
 
 Prefix behavior:
 
 - If `prefixEnabled` is `false`, only the original arguments are logged
-- If the prefix resolves to an empty string, only the original arguments are logged
+- If `prefixEnabled` is `true`, the logger always uses the configured prefix path
+  - This also applies when `prefixFormat` is an empty string or placeholder expansion resolves the prefix to an empty string
+  - If you want to avoid whitespace in that case, set `prefixEnabled` to `false`
 
 Config resolution:
 
@@ -112,13 +156,8 @@ type LoggerConfig = {
   prefixFormat: string;
   placeholders: Placeholders;
 };
-// Per-logger overrides (all fields optional).
-type PerLoggerConfig = {
-  level?: LogLevel;
-  prefixEnabled?: boolean;
-  prefixFormat?: string;
-  placeholders?: Placeholders;
-};
+// Partial update for defaults or per-logger overrides.
+type LoggerConfigPatch = Partial<LoggerConfig>;
 ```
 
 API signatures:
@@ -128,9 +167,9 @@ API signatures:
 getLogger(name: string): Logger;
 
 // Update global defaults.
-setDefaultConfig(partial: PerLoggerConfig): void;
+setDefaultConfig(patch: LoggerConfigPatch): void;
 // Update per-logger overrides.
-setLoggerConfig(name: string, partial: PerLoggerConfig): void;
+setLoggerConfig(name: string, patch: LoggerConfigPatch): void;
 
 // Set global log level shortcut.
 setLogLevel(level: LogLevel): void;
@@ -140,7 +179,7 @@ setLoggerLevel(name: string, level: LogLevel): void;
 // Get current defaults.
 getDefaultConfig(): Readonly<LoggerConfig>;
 // Get per-logger overrides for a logger.
-getLoggerOverrides(name: string): Readonly<PerLoggerConfig>;
+getLoggerOverrides(name: string): Readonly<LoggerConfigPatch>;
 // Get resolved config (defaults + overrides) for a logger.
 getEffectiveLoggerConfig(name: string): Readonly<LoggerConfig>;
 // Get library defaults (initial baseline).

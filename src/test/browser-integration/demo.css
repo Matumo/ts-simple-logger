@@ -1,0 +1,322 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --bg: #091018;
+  --bg-glow: #101c29;
+  --panel: rgba(15, 23, 34, 0.9);
+  --panel-strong: rgba(19, 28, 41, 0.96);
+  --line: rgba(196, 222, 255, 0.12);
+  --text: #e8f0f8;
+  --muted: #95a6b9;
+  --accent: #64f0c8;
+  --accent-warm: #ff8d6b;
+  --shadow: rgba(0, 0, 0, 0.32);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 28px 18px 40px;
+  background:
+    radial-gradient(circle at top left, rgba(100, 240, 200, 0.12), transparent 24rem),
+    radial-gradient(circle at bottom right, rgba(255, 141, 107, 0.1), transparent 22rem),
+    linear-gradient(180deg, var(--bg-glow) 0%, var(--bg) 100%);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 96%);
+  pointer-events: none;
+}
+
+main {
+  position: relative;
+  width: min(940px, 100%);
+  margin: 0 auto;
+  padding: 30px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
+    var(--panel);
+  box-shadow: 0 24px 60px var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+main::before {
+  content: "";
+  position: absolute;
+  inset: auto -4rem -4rem auto;
+  width: 15rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(100, 240, 200, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+.masthead {
+  position: relative;
+  z-index: 1;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: none;
+  margin: 14px 0 0;
+  font-family: "Fraunces", serif;
+  font-size: clamp(2.15rem, 4.6vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.intro {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.9;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.meta-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.meta-label {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.levels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.levels li {
+  padding: 0.28rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: grid;
+  gap: 16px;
+  padding-top: 24px;
+}
+
+.panel {
+  --tone: var(--accent);
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 22px 22px 22px 24px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 32%),
+    var(--panel-strong);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  animation: panel-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--tone);
+}
+
+.panel.module {
+  --tone: var(--accent);
+}
+
+.panel.iife {
+  --tone: var(--accent-warm);
+}
+
+.panel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(196, 222, 255, 0.2);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+}
+
+.panel-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 14px;
+  align-items: center;
+  padding-left: 4px;
+}
+
+.panel-label {
+  color: var(--tone);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.panel-path {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.panel-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding-left: 4px;
+}
+
+h2 {
+  max-width: none;
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.panel p {
+  max-width: 58ch;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.85;
+}
+
+button {
+  min-width: 220px;
+  border: 1px solid currentColor;
+  padding: 16px 20px;
+  background: transparent;
+  color: var(--tone);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  background: var(--tone);
+  color: #091018;
+  border-color: var(--tone);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+}
+
+code {
+  padding: 0.16rem 0.32rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: inherit;
+  font-size: 0.88em;
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  main {
+    padding: 22px;
+  }
+
+  .panel-body {
+    grid-template-columns: 1fr;
+  }
+
+  button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  button {
+    animation: none;
+    transition: none;
+  }
+}
