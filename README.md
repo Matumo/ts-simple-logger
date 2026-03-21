@@ -111,10 +111,10 @@ Placeholders:
     - Hyphen: `-` between segments
   - Examples: `%appName`, `%app-name`, `%APP_2`
 - Reserved placeholders `%loggerName` and `%logLevel` cannot be overridden, and the escape token `%%` is also reserved
-- Unknown placeholders remain as-is
-- Use `%%` to output a literal `%`
+- Unknown placeholders remain as-is; use `%%` for a literal `%`
 - Placeholder functions are evaluated at log time
-- Per-logger placeholders are merged with defaults, with per-logger values taking precedence on key conflicts
+- Default and per-logger placeholder updates are merged by key
+- Effective per-logger placeholders merge defaults and overrides, with per-logger values taking precedence on key conflicts
 
 Prefix behavior:
 

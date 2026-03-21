@@ -308,7 +308,10 @@ function setDefaultConfig(patch: LoggerConfigPatch): void {
   }
 
   if (Object.hasOwn(patch, "placeholders")) {
-    state.defaults.placeholders = clonePlaceholders(patch.placeholders as Placeholders);
+    state.defaults.placeholders = {
+      ...state.defaults.placeholders,
+      ...clonePlaceholders(patch.placeholders as Placeholders),
+    };
   }
 
   reapplyAllLoggers();
@@ -330,7 +333,10 @@ function setLoggerConfig(name: string, patch: LoggerConfigPatch): void {
   const next = { ...current, ...patch };
 
   if (Object.hasOwn(patch, "placeholders")) {
-    next.placeholders = clonePlaceholders(patch.placeholders as Placeholders);
+    next.placeholders = {
+      ...clonePlaceholders(current.placeholders ?? {}),
+      ...clonePlaceholders(patch.placeholders as Placeholders),
+    };
   }
 
   state.perLogger[key] = next;

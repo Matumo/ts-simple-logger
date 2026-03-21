@@ -89,6 +89,40 @@ describe("Node統合テスト", () => {
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][INFO][tick-2]"))).toBeTruthy();
     expect(outputs.some((line) => line.includes("[node %][demo-app][node-test][WARN][tick-3]"))).toBeTruthy();
 
+    setDefaultConfig({
+      placeholders: { "%app-name": "merged-app", "%phase": "default-merge" },
+      prefixFormat: "[default-merge][%app-name][%phase][%tick][%loggerName][%logLevel]"
+    });
+    const defaultMergeLogger = getLogger("default-merge");
+    defaultMergeLogger.info("default placeholder merge works");
+    expect(
+      outputs.some((line) =>
+        line.includes("[default-merge][merged-app][default-merge][tick-") &&
+        line.includes("[default-merge][INFO] default placeholder merge works")
+      )
+    ).toBeTruthy();
+    setLoggerConfig("logger-merge", {
+      placeholders: { "%service": "api", "%phase": "warmup" },
+      prefixFormat: "[logger-merge][%service][%phase][%tick][%loggerName][%logLevel]"
+    });
+    setLoggerConfig("logger-merge", {
+      placeholders: { "%service": "api-v2" }
+    });
+    const loggerMergeLogger = getLogger("logger-merge");
+    loggerMergeLogger.info("logger placeholder merge works");
+    expect(
+      outputs.some((line) =>
+        line.includes("[logger-merge][api-v2][warmup][tick-") &&
+        line.includes("[logger-merge][INFO] logger placeholder merge works")
+      )
+    ).toBeTruthy();
+    setDefaultConfig({
+      level: "debug",
+      prefixEnabled: true,
+      prefixFormat: format,
+      placeholders: { "%app-name": "demo-app", "%tick": () => `tick-${++tick}` }
+    });
+
     // 2: バリデーションチェック
     const validationLogger = getLogger("node-validation");
     setLoggerConfig("node-validation", {
