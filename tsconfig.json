@@ -2,17 +2,17 @@
   "compilerOptions": {
     "target": "es2021",
     "module": "esnext",
+    "rootDir": "./src/main",
     "outDir": "./dist",
     "declaration": true,
     "lib": ["es2022", "dom"],
     "types": ["chrome", "node"],
     "strict": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
+    "moduleResolution": "bundler",
     "paths": {
-      "@main/*": ["src/main/*"],
-      "@test/*": ["src/test/*"]
+      "@main/*": ["./src/main/*"],
+      "@test/*": ["./src/test/*"]
     }
   },
   "include": [
