@@ -63,8 +63,20 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   ).toBeTruthy();
   expect(
     logs.some((entry) =>
+      entry.text.includes(`[${kind}-default-merge][merged-${kind}][%phase][${kind}-`) &&
+      entry.text.includes(`[${kind}-default-merge] INFO: ${kind} default placeholder delete works`)
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
       entry.text.includes(`[${kind}-logger-merge][service-${kind}-v2][warmup][${kind}-`) &&
       entry.text.includes(`[${kind}-logger-merge] INFO: ${kind} logger placeholder merge works`)
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}-logger-merge][%service][warmup][${kind}-`) &&
+      entry.text.includes(`[${kind}-logger-merge] INFO: ${kind} logger placeholder delete works`)
     )
   ).toBeTruthy();
   expect(logs.some((entry) => entry.text === `${kind} edge no prefix`)).toBeTruthy();
@@ -81,6 +93,13 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes('caught reserved placeholder key: reserved placeholder key: "%loggerName"'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes('caught invalid placeholder value: invalid placeholder value for "%bad": 123'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-validation][${kind}][${kind}-validation] INFO: ${kind} validation still works`))).toBeTruthy();
+  expect(logs.some((entry) => entry.text.includes(`(${kind}-default-reset) INFO: ${kind} default reset works`))).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}][browser-${kind}][${kind}-validation] INFO: [${kind}-`) &&
+      entry.text.includes(`${kind} logger reset works`)
+    )
+  ).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-foreign][iframe][${kind}-foreign-realm] INFO: ${kind} foreign realm still works`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
   expect(logs.some((entry) => entry.text.includes(`caught invalid config: invalid log level: "invalid_${kind}_level"`))).toBeTruthy();

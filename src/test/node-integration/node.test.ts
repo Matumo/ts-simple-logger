@@ -101,6 +101,16 @@ describe("Node統合テスト", () => {
         line.includes("[default-merge][INFO] default placeholder merge works")
       )
     ).toBeTruthy();
+    setDefaultConfig({
+      placeholders: { "%phase": null }
+    });
+    defaultMergeLogger.info("default placeholder delete works");
+    expect(
+      outputs.some((line) =>
+        line.includes("[default-merge][merged-app][%phase][tick-") &&
+        line.includes("[default-merge][INFO] default placeholder delete works")
+      )
+    ).toBeTruthy();
     setLoggerConfig("logger-merge", {
       placeholders: { "%service": "api", "%phase": "warmup" },
       prefixFormat: "[logger-merge][%service][%phase][%tick][%loggerName][%logLevel]"
@@ -114,6 +124,16 @@ describe("Node統合テスト", () => {
       outputs.some((line) =>
         line.includes("[logger-merge][api-v2][warmup][tick-") &&
         line.includes("[logger-merge][INFO] logger placeholder merge works")
+      )
+    ).toBeTruthy();
+    setLoggerConfig("logger-merge", {
+      placeholders: { "%service": null }
+    });
+    loggerMergeLogger.info("logger placeholder delete works");
+    expect(
+      outputs.some((line) =>
+        line.includes("[logger-merge][%service][warmup][tick-") &&
+        line.includes("[logger-merge][INFO] logger placeholder delete works")
       )
     ).toBeTruthy();
     setDefaultConfig({
@@ -158,6 +178,55 @@ describe("Node統合テスト", () => {
     validationLogger.info("validation still works");
     expect(
       outputs.some((line) => line.includes("[node-validation][svc][node-validation][INFO] validation still works"))
+    ).toBeTruthy();
+
+    setDefaultConfig({
+      level: "error",
+      prefixEnabled: false,
+      prefixFormat: "[node-default-reset][%app-name][%loggerName][%logLevel]",
+      placeholders: { "%app-name": "node-reset" }
+    });
+    setDefaultConfig({
+      level: null,
+      prefixEnabled: null,
+      prefixFormat: null,
+      placeholders: null
+    });
+    expect(getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: {}
+    });
+    const defaultResetLogger = getLogger("node-default-reset");
+    defaultResetLogger.info("default reset works");
+    expect(outputs.some((line) => line.includes("(node-default-reset) INFO: default reset works"))).toBeTruthy();
+
+    setDefaultConfig({
+      level: "debug",
+      prefixEnabled: true,
+      prefixFormat: format,
+      placeholders: { "%app-name": "demo-app", "%tick": () => `tick-${++tick}` }
+    });
+    setLoggerConfig("node-validation", {
+      level: "error",
+      prefixEnabled: false,
+      prefixFormat: "[node-validation-override][%app-name][%loggerName][%logLevel]",
+      placeholders: { "%app-name": "svc-override", "%phase": "logger-reset" }
+    });
+    setLoggerConfig("node-validation", {
+      level: null,
+      prefixEnabled: null,
+      prefixFormat: null,
+      placeholders: null
+    });
+    expect(getLoggerOverrides("node-validation")).toEqual({});
+    validationLogger.info("logger reset works");
+    expect(
+      outputs.some((line) =>
+        line.includes("[node %][demo-app][node-validation][INFO][tick-") &&
+        line.includes("logger reset works")
+      )
     ).toBeTruthy();
 
     const foreignRealmLogger = getLogger("node-foreign-realm");

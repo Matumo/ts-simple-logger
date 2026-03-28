@@ -1,7 +1,7 @@
 import * as vm from "node:vm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
-import type { LogLevel } from "@main/index";
+import type { LogLevel, LoggerConfig, LoggerConfigOverrides, PerLoggerConfig } from "@main/index";
 
 const originalConsole = globalThis.console;
 let sut: typeof import("@main/index");
@@ -85,6 +85,21 @@ describe("設定参照系", () => {
     expect(defaults).not.toBe(library);
     expect(sut.getLoggerOverrides("no-overrides-logger")).toEqual({});
     expect(sut.getEffectiveLoggerConfig("no-overrides-logger")).toEqual(library);
+  });
+
+  it("LoggerConfigOverridesを正式なread-side型として扱え、PerLoggerConfig互換も維持する", () => {
+    const acceptOverrides = (_: LoggerConfigOverrides): void => { };
+    const acceptPartialLoggerConfig = (_: Partial<LoggerConfig>): void => { };
+
+    const overrides = sut.getLoggerOverrides("type-shape");
+    acceptOverrides(overrides);
+    acceptPartialLoggerConfig(overrides);
+
+    const compatAlias: PerLoggerConfig = overrides;
+    const preferred: LoggerConfigOverrides = compatAlias;
+    acceptOverrides(preferred);
+
+    expect(overrides).toEqual({});
   });
 
   it("デフォルトと個別設定をマージした内容を返す", () => {
@@ -519,7 +534,11 @@ describe("設定のバリデーション", () => {
       placeholders: { "%app": "base" }
     });
 
-    expect(() => sut.setDefaultConfig({ prefixFormat: null as unknown as string })).toThrow("invalid prefixFormat: null");
+    expect(() =>
+      sut.setDefaultConfig({
+        placeholders: { "%app": 123 as unknown as string }
+      })
+    ).toThrow("invalid placeholder value for \"%app\": 123");
     expect(sut.getDefaultConfig()).toEqual({
       level: "info",
       prefixEnabled: false,
@@ -545,6 +564,160 @@ describe("設定のバリデーション", () => {
       prefixFormat: "<ok>",
       placeholders: { "%app": "svc" }
     });
+  });
+
+  it("setDefaultConfigでnull指定したscalarはlibrary defaultに戻す", () => {
+    sut.setDefaultConfig({
+      level: "debug",
+      prefixEnabled: false,
+      prefixFormat: "[custom][%loggerName][%logLevel]",
+      placeholders: { "%app": "base" }
+    });
+
+    sut.setDefaultConfig({
+      level: null,
+      prefixEnabled: null,
+      prefixFormat: null
+    });
+
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "(%loggerName) %logLevel:",
+      placeholders: { "%app": "base" }
+    });
+  });
+
+  it("setDefaultConfigでplaceholdersにnullを渡すとlibrary defaultへ戻す", () => {
+    sut.setDefaultConfig({
+      prefixFormat: "[%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "base", "%keep": "shared" }
+    });
+
+    sut.setDefaultConfig({ placeholders: null });
+
+    expect(sut.getDefaultConfig()).toEqual({
+      level: "info",
+      prefixEnabled: true,
+      prefixFormat: "[%app][%loggerName][%logLevel]",
+      placeholders: {}
+    });
+  });
+
+  it("setDefaultConfigのplaceholdersでnull指定したkeyだけ削除する", () => {
+    sut.setDefaultConfig({
+      placeholders: { "%app": "base", "%keep": "shared" }
+    });
+
+    sut.setDefaultConfig({
+      placeholders: { "%app": null }
+    });
+
+    expect(sut.getDefaultConfig().placeholders).toEqual({ "%keep": "shared" });
+  });
+
+  it("setLoggerConfigでnull指定したscalar overrideを解除する", () => {
+    sut.setDefaultConfig({
+      level: "warn",
+      prefixEnabled: true,
+      prefixFormat: "[default][%loggerName][%logLevel]"
+    });
+
+    sut.setLoggerConfig("nullable-override", {
+      level: "debug",
+      prefixEnabled: false,
+      prefixFormat: "[override][%loggerName][%logLevel]"
+    });
+
+    sut.setLoggerConfig("nullable-override", {
+      level: null,
+      prefixEnabled: null,
+      prefixFormat: null
+    });
+
+    expect(sut.getLoggerOverrides("nullable-override")).toEqual({});
+    expect(sut.getEffectiveLoggerConfig("nullable-override")).toEqual({
+      level: "warn",
+      prefixEnabled: true,
+      prefixFormat: "[default][%loggerName][%logLevel]",
+      placeholders: {}
+    });
+  });
+
+  it("setLoggerConfigでplaceholdersにnullを渡すとoverride全体を削除する", () => {
+    sut.setDefaultConfig({
+      prefixFormat: "[%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "default" }
+    });
+
+    sut.setLoggerConfig("placeholder-reset", {
+      placeholders: { "%app": "override" }
+    });
+
+    sut.setLoggerConfig("placeholder-reset", {
+      placeholders: null
+    });
+
+    expect(sut.getLoggerOverrides("placeholder-reset")).toEqual({});
+    expect(sut.getEffectiveLoggerConfig("placeholder-reset").placeholders).toEqual({ "%app": "default" });
+  });
+
+  it("setLoggerConfigのplaceholders削除で空になったoverride mapは取り除く", () => {
+    sut.setLoggerConfig("placeholder-last-delete", {
+      placeholders: { "%app": "override" }
+    });
+
+    sut.setLoggerConfig("placeholder-last-delete", {
+      placeholders: { "%app": null }
+    });
+
+    expect(sut.getLoggerOverrides("placeholder-last-delete")).toEqual({});
+  });
+
+  it("setLoggerConfigのplaceholdersでnull指定したkeyだけoverrideから削除する", () => {
+    const infoSpy = stubConsoleMethod("info");
+
+    sut.setDefaultConfig({
+      prefixFormat: "[%app][%keep][%loggerName][%logLevel]",
+      placeholders: { "%app": "default", "%keep": "base" }
+    });
+
+    sut.setLoggerConfig("placeholder-null-delete", {
+      prefixFormat: "[%app][%keep][%loggerName][%logLevel]",
+      placeholders: { "%app": "override", "%keep": "local" }
+    });
+
+    sut.setLoggerConfig("placeholder-null-delete", {
+      placeholders: { "%app": null }
+    });
+
+    const logger = sut.getLogger("placeholder-null-delete");
+    logger.info("payload");
+
+    expect(sut.getLoggerOverrides("placeholder-null-delete")).toEqual({
+      prefixFormat: "[%app][%keep][%loggerName][%logLevel]",
+      placeholders: { "%keep": "local" }
+    });
+    expect(sut.getEffectiveLoggerConfig("placeholder-null-delete").placeholders).toEqual({
+      "%app": "default",
+      "%keep": "local"
+    });
+    expectPrefixedConsoleCall(infoSpy, 0, "[default][local][placeholder-null-delete][INFO]", "payload");
+  });
+
+  it("nullでも不正または予約済みplaceholderキーは拒否する", () => {
+    expect(() =>
+      sut.setDefaultConfig({
+        placeholders: { "%app.name": null }
+      })
+    ).toThrow("invalid placeholder key: \"%app.name\"");
+    expect(() =>
+      sut.setLoggerConfig("test-invalid", {
+        placeholders: { "%loggerName": null }
+      })
+    ).toThrow("reserved placeholder key: \"%loggerName\"");
+    expect(sut.getDefaultConfig().placeholders).toEqual({});
+    expect(sut.getLoggerOverrides("test-invalid")).toEqual({});
   });
 
   it("後からデフォルト値を変更した場合はdefault placeholdersをマージして全ロガーに反映する", () => {
