@@ -88,7 +88,11 @@ function validatePlaceholderKey(key: PropertyKey): void {
   }
 }
 
-function validatePlaceholders(placeholders: unknown): void {
+function validatePatchPlaceholders(placeholders: unknown): void {
+  if (placeholders === null) {
+    return;
+  }
+
   if (!isPlainObject(placeholders)) {
     throw new TypeError(`invalid placeholders: ${formatInvalidValue(placeholders)}`);
   }
@@ -101,7 +105,7 @@ function validatePlaceholders(placeholders: unknown): void {
     validatePlaceholderKey(key);
 
     const value = placeholders[key];
-    if (typeof value !== "string" && typeof value !== "function") {
+    if (value !== null && typeof value !== "string" && typeof value !== "function") {
       throw new TypeError(`invalid placeholder value for ${JSON.stringify(key)}: ${formatInvalidValue(value)}`);
     }
   }
@@ -120,11 +124,18 @@ type LoggerConfig = {
   placeholders: Placeholders;
 };
 
-type LoggerConfigPatch = Partial<LoggerConfig>;
+type LoggerConfigPatch = {
+  level?: LogLevel | null;
+  prefixEnabled?: boolean | null;
+  prefixFormat?: string | null;
+  placeholders?: Record<string, PlaceholderValue | null> | null;
+};
+
+type LoggerConfigOverrides = Partial<LoggerConfig>;
 
 // TODO: いつか消す
-/** @deprecated Use LoggerConfigPatch */
-type PerLoggerConfig = LoggerConfigPatch; // NOSONAR
+/** @deprecated Compatibility alias only. Prefer LoggerConfigOverrides for read-side overrides in new code. */
+type PerLoggerConfig = LoggerConfigOverrides; // NOSONAR
 
 type Logger = {
   readonly name: string;
@@ -138,7 +149,7 @@ type Logger = {
 type State = {
   libraryDefaults: LoggerConfig;
   defaults: LoggerConfig;
-  perLogger: Record<string, LoggerConfigPatch>;
+  loggerOverrides: Record<string, LoggerConfigOverrides>;
   loggers: Map<string, Logger>;
 };
 
@@ -153,14 +164,33 @@ function cloneLoggerConfig(config: LoggerConfig): LoggerConfig {
   };
 }
 
-function cloneLoggerConfigPatch(config: LoggerConfigPatch): LoggerConfigPatch {
-  const clone: LoggerConfigPatch = { ...config };
+function cloneLoggerConfigOverrides(config: LoggerConfigOverrides): LoggerConfigOverrides {
+  const clone: LoggerConfigOverrides = { ...config };
 
   if (Object.hasOwn(config, "placeholders")) {
     clone.placeholders = clonePlaceholders(config.placeholders as Placeholders);
   }
 
   return clone;
+}
+
+function applyPlaceholdersPatch(
+  base: Placeholders,
+  patch: Record<string, PlaceholderValue | null>,
+): Placeholders {
+  const next = clonePlaceholders(base);
+
+  for (const key of Object.keys(patch)) {
+    const value = patch[key];
+    if (value === null) {
+      delete next[key];
+      continue;
+    }
+
+    next[key] = value;
+  }
+
+  return next;
 }
 
 function noop(): void { }
@@ -193,7 +223,7 @@ function createState(): State {
   return {
     libraryDefaults,
     defaults: cloneLoggerConfig(libraryDefaults),
-    perLogger: {},
+    loggerOverrides: {},
     loggers: new Map(),
   };
 }
@@ -226,13 +256,13 @@ function formatPrefix(
 function resolveEffectiveConfig(loggerName: string): LoggerConfig {
   const state = getState();
   const d = state.defaults;
-  const p = state.perLogger[loggerName] ?? {};
+  const loggerOverrides = state.loggerOverrides[loggerName] ?? {};
 
   return {
-    level: p.level ?? d.level,
-    prefixEnabled: p.prefixEnabled ?? d.prefixEnabled,
-    prefixFormat: p.prefixFormat ?? d.prefixFormat,
-    placeholders: { ...d.placeholders, ...p.placeholders },
+    level: loggerOverrides.level ?? d.level,
+    prefixEnabled: loggerOverrides.prefixEnabled ?? d.prefixEnabled,
+    prefixFormat: loggerOverrides.prefixFormat ?? d.prefixFormat,
+    placeholders: { ...d.placeholders, ...(loggerOverrides.placeholders ?? {}) },
   };
 }
 
@@ -275,16 +305,22 @@ function validateConfigPatch(patch: LoggerConfigPatch): void {
   validateConfigObject(patch);
 
   if (Object.hasOwn(patch, "level")) {
-    validateLevel(patch.level);
+    if (patch.level !== null) {
+      validateLevel(patch.level);
+    }
   }
   if (Object.hasOwn(patch, "prefixEnabled")) {
-    validatePrefixEnabled(patch.prefixEnabled);
+    if (patch.prefixEnabled !== null) {
+      validatePrefixEnabled(patch.prefixEnabled);
+    }
   }
   if (Object.hasOwn(patch, "prefixFormat")) {
-    validatePrefixFormat(patch.prefixFormat);
+    if (patch.prefixFormat !== null) {
+      validatePrefixFormat(patch.prefixFormat);
+    }
   }
   if (Object.hasOwn(patch, "placeholders")) {
-    validatePlaceholders(patch.placeholders);
+    validatePatchPlaceholders(patch.placeholders);
   }
 }
 
@@ -296,22 +332,21 @@ function setDefaultConfig(patch: LoggerConfigPatch): void {
   validateConfigPatch(patch);
 
   if (Object.hasOwn(patch, "level")) {
-    state.defaults.level = patch.level as LogLevel;
+    state.defaults.level = patch.level ?? state.libraryDefaults.level;
   }
 
   if (Object.hasOwn(patch, "prefixEnabled")) {
-    state.defaults.prefixEnabled = patch.prefixEnabled as boolean;
+    state.defaults.prefixEnabled = patch.prefixEnabled ?? state.libraryDefaults.prefixEnabled;
   }
 
   if (Object.hasOwn(patch, "prefixFormat")) {
-    state.defaults.prefixFormat = patch.prefixFormat as string;
+    state.defaults.prefixFormat = patch.prefixFormat ?? state.libraryDefaults.prefixFormat;
   }
 
   if (Object.hasOwn(patch, "placeholders")) {
-    state.defaults.placeholders = {
-      ...state.defaults.placeholders,
-      ...clonePlaceholders(patch.placeholders as Placeholders),
-    };
+    state.defaults.placeholders = patch.placeholders == null
+      ? clonePlaceholders(state.libraryDefaults.placeholders)
+      : applyPlaceholdersPatch(state.defaults.placeholders, patch.placeholders);
   }
 
   reapplyAllLoggers();
@@ -329,17 +364,51 @@ function setLoggerConfig(name: string, patch: LoggerConfigPatch): void {
 
   validateConfigPatch(patch);
 
-  const current = state.perLogger[key] ?? {};
-  const next = { ...current, ...patch };
+  const current = state.loggerOverrides[key] ?? {};
+  const next = cloneLoggerConfigOverrides(current);
 
-  if (Object.hasOwn(patch, "placeholders")) {
-    next.placeholders = {
-      ...clonePlaceholders(current.placeholders ?? {}),
-      ...clonePlaceholders(patch.placeholders as Placeholders),
-    };
+  if (Object.hasOwn(patch, "level")) {
+    if (patch.level == null) {
+      delete next.level;
+    } else {
+      next.level = patch.level;
+    }
   }
 
-  state.perLogger[key] = next;
+  if (Object.hasOwn(patch, "prefixEnabled")) {
+    if (patch.prefixEnabled == null) {
+      delete next.prefixEnabled;
+    } else {
+      next.prefixEnabled = patch.prefixEnabled;
+    }
+  }
+
+  if (Object.hasOwn(patch, "prefixFormat")) {
+    if (patch.prefixFormat == null) {
+      delete next.prefixFormat;
+    } else {
+      next.prefixFormat = patch.prefixFormat;
+    }
+  }
+
+  if (Object.hasOwn(patch, "placeholders")) {
+    if (patch.placeholders == null) {
+      delete next.placeholders;
+    } else {
+      const nextPlaceholders = applyPlaceholdersPatch(next.placeholders ?? {}, patch.placeholders);
+      if (Object.keys(nextPlaceholders).length === 0) {
+        delete next.placeholders;
+      } else {
+        next.placeholders = nextPlaceholders;
+      }
+    }
+  }
+
+  if (Object.keys(next).length === 0) {
+    delete state.loggerOverrides[key];
+  } else {
+    state.loggerOverrides[key] = next;
+  }
 
   const logger = state.loggers.get(key);
   if (logger) applyConfigToLogger(logger);
@@ -388,13 +457,13 @@ function getLogger(name: string): Logger {
 function getDefaultConfig(): Readonly<LoggerConfig> {
   return cloneLoggerConfig(getState().defaults);
 }
-function getLoggerOverrides(name: string): Readonly<LoggerConfigPatch> {
+function getLoggerOverrides(name: string): Readonly<LoggerConfigOverrides> {
   const state = getState();
   const key = name?.trim();
   if (!key) {
     throw new Error("logger name must be a non-empty string");
   }
-  return cloneLoggerConfigPatch(state.perLogger[key] ?? {});
+  return cloneLoggerConfigOverrides(state.loggerOverrides[key] ?? {});
 }
 function getEffectiveLoggerConfig(name: string): Readonly<LoggerConfig> {
   const key = name?.trim();
@@ -425,6 +494,7 @@ export {
 export type {
   LogLevel,
   LoggerConfig,
+  LoggerConfigOverrides,
   LoggerConfigPatch,
   Logger,
   PerLoggerConfig,

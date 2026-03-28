@@ -89,6 +89,12 @@
       })
       const defaultMergeLogger = getLogger(`${kind}-default-merge`)
       defaultMergeLogger.info(`${kind} default placeholder merge works`)
+      setDefaultConfig({
+        placeholders: {
+          "%phase": null
+        }
+      })
+      defaultMergeLogger.info(`${kind} default placeholder delete works`)
       setLoggerConfig(`${kind}-logger-merge`, {
         placeholders: {
           "%service": `service-${kind}`,
@@ -103,6 +109,12 @@
       })
       const loggerMergeLogger = getLogger(`${kind}-logger-merge`)
       loggerMergeLogger.info(`${kind} logger placeholder merge works`)
+      setLoggerConfig(`${kind}-logger-merge`, {
+        placeholders: {
+          "%service": null
+        }
+      })
+      loggerMergeLogger.info(`${kind} logger placeholder delete works`)
       setDefaultConfig({
         level: "trace",
         prefixEnabled: true,
@@ -191,6 +203,47 @@
       }
 
       validationLogger.info(`${kind} validation still works`)
+
+      setDefaultConfig({
+        level: "error",
+        prefixEnabled: false,
+        prefixFormat: `[${kind}-default-reset][%app-name][%loggerName] %logLevel:`,
+        placeholders: { "%app-name": `reset-${kind}` }
+      })
+      setDefaultConfig({
+        level: null,
+        prefixEnabled: null,
+        prefixFormat: null,
+        placeholders: null
+      })
+      const defaultResetLogger = getLogger(`${kind}-default-reset`)
+      defaultResetLogger.info(`${kind} default reset works`)
+
+      setDefaultConfig({
+        level: "trace",
+        prefixEnabled: true,
+        prefixFormat: `[${kind}][%app-name][%loggerName] %logLevel: [%tick]`,
+        placeholders: {
+          "%app-name": `browser-${kind}`,
+          "%tick": () => `${kind}-${++tick}`
+        }
+      })
+      setLoggerConfig(`${kind}-validation`, {
+        level: "error",
+        prefixEnabled: false,
+        prefixFormat: `[${kind}-validation-reset][%app-name][%loggerName] %logLevel:`,
+        placeholders: {
+          "%app-name": `override-${kind}`,
+          "%phase": "logger-reset"
+        }
+      })
+      setLoggerConfig(`${kind}-validation`, {
+        level: null,
+        prefixEnabled: null,
+        prefixFormat: null,
+        placeholders: null
+      })
+      validationLogger.info(`${kind} logger reset works`)
 
       const foreignLogger = getLogger(`${kind}-foreign-realm`)
       let cleanupForeignConfig = () => {}
