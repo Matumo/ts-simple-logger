@@ -54,6 +54,31 @@ function getDeferredPrefixArg(spy: CallSpy, callIndex: number, ...expectedArgs: 
   return prefixArg as DeferredPrefixArg;
 }
 
+function getDeferredPrefixArgForFormattedCall(
+  spy: CallSpy,
+  callIndex: number,
+  expectedFormat: string,
+  ...expectedArgs: unknown[]
+): DeferredPrefixArg {
+  const call = spy.mock.calls[callIndex];
+  if (!call) {
+    throw new Error(`expected console call #${callIndex + 1}`);
+  }
+
+  expect(call[0]).toBe(expectedFormat);
+  expect(call.slice(2)).toEqual(expectedArgs);
+
+  const prefixArg = call[1];
+  if (typeof prefixArg !== "object" || prefixArg === null) {
+    throw new Error("expected deferred prefix object");
+  }
+
+  expect(Object.hasOwn(prefixArg, "toString")).toBe(true);
+  expect(typeof (prefixArg as DeferredPrefixArg).toString).toBe("function");
+
+  return prefixArg as DeferredPrefixArg;
+}
+
 function expectPrefixedConsoleCall(
   spy: CallSpy,
   callIndex: number,
@@ -61,6 +86,18 @@ function expectPrefixedConsoleCall(
   ...expectedArgs: unknown[]
 ): void {
   expect(getDeferredPrefixArg(spy, callIndex, ...expectedArgs).toString()).toBe(expectedPrefix);
+}
+
+function expectFormattedPrefixedConsoleCall(
+  spy: CallSpy,
+  callIndex: number,
+  expectedFormat: string,
+  expectedPrefix: string,
+  ...expectedArgs: unknown[]
+): void {
+  expect(getDeferredPrefixArgForFormattedCall(spy, callIndex, expectedFormat, ...expectedArgs).toString()).toBe(
+    expectedPrefix
+  );
 }
 
 beforeEach(async () => {
@@ -223,6 +260,272 @@ describe("ログ出力の挙動", () => {
     expectPrefixedConsoleCall(infoSpy, 0, "", "first");
     expectPrefixedConsoleCall(infoSpy, 1, "[shown]", "second");
     expect(prefixFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("formatでprefixとテンプレートを先頭引数にマージする", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted");
+    const obj = { value: 1 };
+
+    logger.format("value=%s").info("ok", obj);
+
+    expectFormattedPrefixedConsoleCall(infoSpy, 0, "%s value=%s", "(formatted) INFO:", "ok", obj);
+  });
+
+  it("prefix無効時のformatはテンプレートだけをconsoleに渡す", () => {
+    sut.setDefaultConfig({ prefixEnabled: false });
+    const warnSpy = stubConsoleMethod("warn");
+    const logger = sut.getLogger("formatted-no-prefix");
+
+    logger.format("x=%d").warn(10);
+
+    expect(warnSpy).toHaveBeenCalledWith("x=%d", 10);
+  });
+
+  it("formatで複数プレースホルダーの引数順を保つ", () => {
+    const errorSpy = stubConsoleMethod("error");
+    const logger = sut.getLogger("formatted-order");
+
+    logger.format("user=%s status=%d").error("alice", 500);
+
+    expectFormattedPrefixedConsoleCall(
+      errorSpy,
+      0,
+      "%s user=%s status=%d",
+      "(formatted-order) ERROR:",
+      "alice",
+      500
+    );
+  });
+
+  it("同じloggerで複数templateのformattedを混在させても独立して動く", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const warnSpy = stubConsoleMethod("warn");
+    const logger = sut.getLogger("formatted-multiple-templates");
+
+    logger.format("value=%s").info("ok");
+    logger.format("count=%d").warn(10);
+
+    expectFormattedPrefixedConsoleCall(infoSpy, 0, "%s value=%s", "(formatted-multiple-templates) INFO:", "ok");
+    expectFormattedPrefixedConsoleCall(warnSpy, 0, "%s count=%d", "(formatted-multiple-templates) WARN:", 10);
+  });
+
+  it("同一設定でのformat cache hitはformattedメソッドを再生成しない", () => {
+    const logger = sut.getLogger("formatted-cache-hit");
+    const formatted = logger.format("value=%s");
+    const firstInfo = formatted.info;
+    const firstWarn = formatted.warn;
+
+    const cached = logger.format("value=%s");
+
+    expect(cached).toBe(formatted);
+    expect(cached.info).toBe(firstInfo);
+    expect(cached.warn).toBe(firstWarn);
+  });
+
+  it("formatは非文字列テンプレートを拒否する", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-invalid-template");
+
+    expect(() => logger.format(123 as unknown as string)).toThrow(TypeError);
+    expect(() => logger.format(123 as unknown as string)).toThrow("invalid format template: 123");
+    expect(infoSpy).not.toHaveBeenCalled();
+  });
+
+  it("format経由でもログレベル抑止が効く", () => {
+    sut.setLogLevel("error");
+    const warnSpy = stubConsoleMethod("warn");
+    const errorSpy = stubConsoleMethod("error");
+    const logger = sut.getLogger("formatted-level");
+
+    logger.format("x=%d").warn(10);
+    logger.format("x=%d").error(20);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expectFormattedPrefixedConsoleCall(errorSpy, 0, "%s x=%d", "(formatted-level) ERROR:", 20);
+  });
+
+  it("formatはtraceとdebugも正しいconsoleメソッドへ流す", () => {
+    sut.setDefaultConfig({ level: "trace" });
+    const traceSpy = stubConsoleMethod("trace");
+    const debugSpy = stubConsoleMethod("debug");
+    const logger = sut.getLogger("formatted-trace-debug");
+
+    logger.format("trace=%s").trace("a");
+    logger.format("debug=%d").debug(2);
+
+    expectFormattedPrefixedConsoleCall(traceSpy, 0, "%s trace=%s", "(formatted-trace-debug) TRACE:", "a");
+    expectFormattedPrefixedConsoleCall(debugSpy, 0, "%s debug=%d", "(formatted-trace-debug) DEBUG:", 2);
+  });
+
+  it("同じformattedを同一設定で連続実行しても動的prefixが毎回再評価される", () => {
+    let counter = 0;
+    const counterFn = vi.fn(() => `tick-${++counter}`);
+
+    sut.setDefaultConfig({
+      prefixFormat: "[%counter]",
+      placeholders: { "%counter": counterFn }
+    });
+
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-dynamic-prefix");
+    const formatted = logger.format("value=%s");
+
+    formatted.info("first");
+    formatted.info("second");
+
+    expect(counterFn).not.toHaveBeenCalled();
+    const firstPrefixArg = getDeferredPrefixArgForFormattedCall(infoSpy, 0, "%s value=%s", "first");
+    const secondPrefixArg = getDeferredPrefixArgForFormattedCall(infoSpy, 1, "%s value=%s", "second");
+
+    expect(firstPrefixArg.toString()).toBe("[tick-1]");
+    expect(secondPrefixArg.toString()).toBe("[tick-2]");
+    expect(counterFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("保持したformatの戻り値も後続のデフォルトlevel変更に追従する", () => {
+    const warnSpy = stubConsoleMethod("warn");
+    const errorSpy = stubConsoleMethod("error");
+    const logger = sut.getLogger("formatted-retained-level");
+    const formatted = logger.format("x=%d");
+
+    sut.setDefaultConfig({ level: "error" });
+    formatted.warn(10);
+    formatted.error(20);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expectFormattedPrefixedConsoleCall(errorSpy, 0, "%s x=%d", "(formatted-retained-level) ERROR:", 20);
+  });
+
+  it("保持したformatの戻り値も後続の各ロガーlevel変更に追従する", () => {
+    const warnSpy = stubConsoleMethod("warn");
+    const errorSpy = stubConsoleMethod("error");
+    const logger = sut.getLogger("formatted-retained-level-override");
+    const formatted = logger.format("x=%d");
+
+    sut.setLoggerLevel("formatted-retained-level-override", "error");
+    formatted.warn(10);
+    formatted.error(20);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expectFormattedPrefixedConsoleCall(errorSpy, 0, "%s x=%d", "(formatted-retained-level-override) ERROR:", 20);
+  });
+
+  it("保持したformatの戻り値も後続のデフォルトprefix変更に追従する", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-retained-default-prefix");
+    const formatted = logger.format("value=%s");
+
+    sut.setDefaultConfig({ prefixEnabled: false });
+    formatted.info("ok");
+
+    expect(infoSpy).toHaveBeenCalledWith("value=%s", "ok");
+  });
+
+  it("保持したformatの戻り値も後続の各ロガーprefix変更に追従する", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-retained-prefix");
+    const formatted = logger.format("value=%s");
+
+    sut.setLoggerConfig("formatted-retained-prefix", { prefixEnabled: false });
+    formatted.info("ok");
+
+    expect(infoSpy).toHaveBeenCalledWith("value=%s", "ok");
+  });
+
+  it("保持したformatの戻り値も後続のデフォルトprefixFormatとplaceholders変更に追従する", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-retained-default-prefix-format");
+    const formatted = logger.format("value=%s");
+
+    sut.setDefaultConfig({
+      prefixFormat: "[%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "default-app" }
+    });
+    formatted.info("ok");
+
+    expectFormattedPrefixedConsoleCall(
+      infoSpy,
+      0,
+      "%s value=%s",
+      "[default-app][formatted-retained-default-prefix-format][INFO]",
+      "ok"
+    );
+  });
+
+  it("保持したformatの戻り値も後続の各ロガーprefixFormatとplaceholders変更に追従する", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-retained-override-prefix-format");
+    const formatted = logger.format("value=%s");
+
+    sut.setLoggerConfig("formatted-retained-override-prefix-format", {
+      prefixFormat: "[%app][%loggerName][%logLevel]",
+      placeholders: { "%app": "override-app" }
+    });
+    formatted.info("ok");
+
+    expectFormattedPrefixedConsoleCall(
+      infoSpy,
+      0,
+      "%s value=%s",
+      "[override-app][formatted-retained-override-prefix-format][INFO]",
+      "ok"
+    );
+  });
+
+  it("古いformat参照から新規templateを生成してもstale cacheを残さない", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-stale-cache");
+    const oldFormat = logger.format;
+
+    sut.setDefaultConfig({ prefixEnabled: false });
+    oldFormat("x=%d").info(1);
+    logger.format("x=%d").info(2);
+
+    expect(infoSpy).toHaveBeenNthCalledWith(1, "x=%d", 1);
+    expect(infoSpy).toHaveBeenNthCalledWith(2, "x=%d", 2);
+  });
+
+  it("各ロガー設定変更後に新しく呼ぶformatは最新設定を使う", () => {
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-fresh-override");
+
+    logger.format("value=%s").info("before");
+    sut.setLoggerConfig("formatted-fresh-override", { prefixEnabled: false });
+    logger.format("value=%s").info("after");
+
+    expectFormattedPrefixedConsoleCall(infoSpy, 0, "%s value=%s", "(formatted-fresh-override) INFO:", "before");
+    expect(infoSpy).toHaveBeenNthCalledWith(2, "value=%s", "after");
+  });
+
+  it("formatでも特定のconsoleメソッド未定義時はconsole.logにフォールバックする", () => {
+    const originalInfo = console.info;
+    const originalLog = console.log;
+    const logSpy = vi.fn();
+
+    try {
+      // @ts-expect-error override console for test
+      console.info = undefined;
+      console.log = logSpy;
+
+      const logger = sut.getLogger("formatted-fallback");
+      logger.format("value=%s").info("ok");
+
+      expectFormattedPrefixedConsoleCall(logSpy, 0, "%s value=%s", "(formatted-fallback) INFO:", "ok");
+    } finally {
+      console.info = originalInfo;
+      console.log = originalLog;
+    }
+  });
+
+  it("formatでは空prefixでも\"%s \"+template経由で出力する", () => {
+    sut.setDefaultConfig({ prefixFormat: "" });
+    const infoSpy = stubConsoleMethod("info");
+    const logger = sut.getLogger("formatted-empty-prefix");
+
+    logger.format("value=%s").info("ok");
+
+    expectFormattedPrefixedConsoleCall(infoSpy, 0, "%s value=%s", "", "ok");
   });
 
   it("ログレベルの動作確認", () => {

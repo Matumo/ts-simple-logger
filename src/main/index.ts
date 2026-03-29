@@ -10,6 +10,8 @@
 type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "silent";
 type PlaceholderValue = string | (() => string);
 type Placeholders = Record<string, PlaceholderValue>;
+type LoggerMethodName = "trace" | "debug" | "info" | "warn" | "error";
+type LogMethod = (...args: unknown[]) => void;
 
 const LEVEL_ORDER: Record<LogLevel, number> = {
   trace: 10,
@@ -71,6 +73,12 @@ function validatePrefixEnabled(prefixEnabled: unknown): void {
 function validatePrefixFormat(prefixFormat: unknown): void {
   if (typeof prefixFormat !== "string") {
     throw new TypeError(`invalid prefixFormat: ${formatInvalidValue(prefixFormat)}`);
+  }
+}
+
+function validateFormatTemplate(template: unknown): void {
+  if (typeof template !== "string") {
+    throw new TypeError(`invalid format template: ${formatInvalidValue(template)}`);
   }
 }
 
@@ -137,20 +145,35 @@ type LoggerConfigOverrides = Partial<LoggerConfig>;
 /** @deprecated Compatibility alias only. Prefer LoggerConfigOverrides for read-side overrides in new code. */
 type PerLoggerConfig = LoggerConfigOverrides; // NOSONAR
 
+type FormattedLogger = {
+  trace: LogMethod;
+  debug: LogMethod;
+  info: LogMethod;
+  warn: LogMethod;
+  error: LogMethod;
+};
+
 type Logger = {
   readonly name: string;
-  trace: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
-  info: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
+  format: (template: string) => FormattedLogger;
+  trace: LogMethod;
+  debug: LogMethod;
+  info: LogMethod;
+  warn: LogMethod;
+  error: LogMethod;
+};
+
+const FORMATTED_LOGGER_CACHE = Symbol("formattedLoggerCache");
+
+type InternalLogger = Logger & {
+  [FORMATTED_LOGGER_CACHE]: Map<string, FormattedLogger>;
 };
 
 type State = {
   libraryDefaults: LoggerConfig;
   defaults: LoggerConfig;
   loggerOverrides: Record<string, LoggerConfigOverrides>;
-  loggers: Map<string, Logger>;
+  loggers: Map<string, InternalLogger>;
 };
 
 function clonePlaceholders(placeholders: Placeholders): Placeholders {
@@ -196,8 +219,8 @@ function applyPlaceholdersPatch(
 function noop(): void { }
 
 function getConsoleMethod(
-  method: "trace" | "debug" | "info" | "warn" | "error",
-): (...args: unknown[]) => void {
+  method: LoggerMethodName,
+): LogMethod {
   const c: Partial<Console> | undefined = globalThis.console;
 
   const fn = c?.[method];
@@ -266,32 +289,92 @@ function resolveEffectiveConfig(loggerName: string): LoggerConfig {
   };
 }
 
-function applyConfigToLogger(logger: Logger): void {
+type DeferredPrefixArg = {
+  toString: () => string;
+};
+
+function createDeferredPrefixArg(
+  loggerName: string,
+  level: LogLevel,
+  config: LoggerConfig,
+): DeferredPrefixArg {
+  return {
+    toString: () => formatPrefix(config.prefixFormat, loggerName, level, config.placeholders),
+  };
+}
+
+function createLogMethod(
+  loggerName: string,
+  config: LoggerConfig,
+  level: LoggerMethodName,
+  template?: string,
+): LogMethod {
+  if (LEVEL_ORDER[config.level] > LEVEL_ORDER[level]) {
+    return noop;
+  }
+
+  const fn = getConsoleMethod(level);
+  if (template === undefined) {
+    if (!config.prefixEnabled) return fn;
+    return fn.bind(null, "%s", createDeferredPrefixArg(loggerName, level, config));
+  }
+
+  if (!config.prefixEnabled) {
+    return fn.bind(null, template);
+  }
+
+  return fn.bind(null, `%s ${template}`, createDeferredPrefixArg(loggerName, level, config));
+}
+
+function createNoopFormattedLogger(): FormattedLogger {
+  return {
+    trace: noop,
+    debug: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+  };
+}
+
+function applyConfigToFormattedLogger(
+  formattedLogger: FormattedLogger,
+  loggerName: string,
+  config: LoggerConfig,
+  template: string,
+): void {
+  formattedLogger.trace = createLogMethod(loggerName, config, "trace", template);
+  formattedLogger.debug = createLogMethod(loggerName, config, "debug", template);
+  formattedLogger.info = createLogMethod(loggerName, config, "info", template);
+  formattedLogger.warn = createLogMethod(loggerName, config, "warn", template);
+  formattedLogger.error = createLogMethod(loggerName, config, "error", template);
+}
+
+function applyConfigToLogger(logger: InternalLogger): void {
   const name = logger.name;
   const cfg = resolveEffectiveConfig(name);
+  const formattedLoggers = logger[FORMATTED_LOGGER_CACHE];
 
-  const enabled = (need: LogLevel) => LEVEL_ORDER[cfg.level] <= LEVEL_ORDER[need];
+  logger.format = (template: string) => {
+    validateFormatTemplate(template);
 
-  const cTrace = getConsoleMethod("trace");
-  const cDebug = getConsoleMethod("debug");
-  const cInfo = getConsoleMethod("info");
-  const cWarn = getConsoleMethod("warn");
-  const cError = getConsoleMethod("error");
+    const cached = formattedLoggers.get(template);
+    if (cached) return cached;
 
-  const buildMethod = (level: LogLevel, fn: (...a: unknown[]) => void) => {
-    if (!enabled(level)) return noop;
-    if (!cfg.prefixEnabled) return fn;
-
-    return fn.bind(null, "%s", {
-      toString: () => formatPrefix(cfg.prefixFormat, name, level, cfg.placeholders),
-    });
+    const currentConfig = resolveEffectiveConfig(name);
+    const formattedLogger = createNoopFormattedLogger();
+    formattedLoggers.set(template, formattedLogger);
+    applyConfigToFormattedLogger(formattedLogger, name, currentConfig, template);
+    return formattedLogger;
   };
+  logger.trace = createLogMethod(name, cfg, "trace");
+  logger.debug = createLogMethod(name, cfg, "debug");
+  logger.info = createLogMethod(name, cfg, "info");
+  logger.warn = createLogMethod(name, cfg, "warn");
+  logger.error = createLogMethod(name, cfg, "error");
 
-  logger.trace = buildMethod("trace", cTrace);
-  logger.debug = buildMethod("debug", cDebug);
-  logger.info = buildMethod("info", cInfo);
-  logger.warn = buildMethod("warn", cWarn);
-  logger.error = buildMethod("error", cError);
+  for (const [template, formattedLogger] of formattedLoggers) {
+    applyConfigToFormattedLogger(formattedLogger, name, cfg, template);
+  }
 }
 
 function reapplyAllLoggers(): void {
@@ -437,8 +520,10 @@ function getLogger(name: string): Logger {
   const cached = state.loggers.get(key);
   if (cached) return cached;
 
-  const logger: Logger = {
+  const logger: InternalLogger = {
     name: key,
+    [FORMATTED_LOGGER_CACHE]: new Map(),
+    format: createNoopFormattedLogger,
     trace: noop,
     debug: noop,
     info: noop,
@@ -492,6 +577,7 @@ export {
 };
 
 export type {
+  FormattedLogger,
   LogLevel,
   LoggerConfig,
   LoggerConfigOverrides,

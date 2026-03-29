@@ -44,7 +44,7 @@
         <div class="panel-body">
           <div>
             <h2>Run the module bundle</h2>
-            <p>Imports the ESM bundle and emits a trace-to-error sequence from the module logger.</p>
+            <p>Imports the ESM bundle and emits a trace-to-error sequence plus one formatted log sample from the module logger.</p>
           </div>
 
           <button id="module-run" type="button">Run module logs</button>
@@ -60,7 +60,7 @@
         <div class="panel-body">
           <div>
             <h2>Run the IIFE bundle</h2>
-            <p>Uses the global <code>TsSimpleLogger</code> API and emits the same sample output through the IIFE bundle.</p>
+            <p>Uses the global <code>TsSimpleLogger</code> API and emits the same sample output, including one formatted log call, through the IIFE bundle.</p>
           </div>
 
           <button id="iife-run" type="button">Run IIFE logs</button>
@@ -93,6 +93,7 @@
       moduleLogger.trace("module trace")
       moduleLogger.debug("module debug")
       moduleLogger.info("module info")
+      moduleLogger.format("value=%s").info("ok", { source: "module" })
       moduleLogger.warn("module warn")
       moduleLogger.error("module error", { status: 500 })
     })
@@ -123,6 +124,7 @@
       iifeLogger.trace("iife trace")
       iifeLogger.debug("iife debug")
       iifeLogger.info("iife info")
+      iifeLogger.format("value=%s").info("ok", { source: "iife" })
       iifeLogger.warn("iife warn")
       iifeLogger.error("iife error", { user: "alice" })
     })

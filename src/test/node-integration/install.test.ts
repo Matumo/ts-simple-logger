@@ -21,6 +21,9 @@ const runNpm = (args: string[], cwd: string) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../../..");
+const tscCliPath = path.resolve(repoRoot, "node_modules/typescript/bin/tsc");
+
+const runTsc = (args: string[], cwd: string) => runNode([tscCliPath, ...args], cwd);
 
 describe("npm install動作確認", () => {
   let tarballPath: string;
@@ -102,6 +105,50 @@ describe("npm install動作確認", () => {
       const { stdout: esmOut } = await runNode([esmScriptPath], projectDir);
       expect(esmOut).toContain("[install-esm][install-test][DEBUG] ok-debug");
       expect(esmOut).toContain("[install-esm][install-test][INFO] ok-info");
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("npm packしたtarballの公開型定義をconsumerからコンパイルできる", async () => {
+    const projectDir = await mkdtemp(path.join(workRoot, "install-types-"));
+    try {
+      await runNpm(["init", "-y"], projectDir);
+      await runNpm(["install", tarballPath], projectDir);
+
+      const tsconfigPath = path.join(projectDir, "tsconfig.json");
+      await writeFile(
+        tsconfigPath,
+        JSON.stringify(
+          {
+            compilerOptions: {
+              target: "ES2022",
+              module: "ESNext",
+              moduleResolution: "Bundler",
+              strict: true,
+              skipLibCheck: true,
+              noEmit: true
+            },
+            include: ["smoke.ts"]
+          },
+          null,
+          2
+        )
+      );
+
+      const tsSmokePath = path.join(projectDir, "smoke.ts");
+      await writeFile(
+        tsSmokePath,
+        [
+          'import { getLogger, type FormattedLogger, type Logger } from "@matumo/ts-simple-logger";',
+          'const logger: Logger = getLogger("install-types");',
+          'const formatted: FormattedLogger = logger.format("value=%s");',
+          'formatted.info("ok");',
+          'logger.format("count=%d").warn(1);'
+        ].join("\n")
+      );
+
+      await runTsc(["-p", "tsconfig.json"], projectDir);
     } finally {
       await rm(projectDir, { recursive: true, force: true });
     }
