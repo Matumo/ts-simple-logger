@@ -86,6 +86,8 @@ app.info("started");
 // [myapp] 2000-01-01T00:00:00.000Z (app) INFO: started
 db.debug("connected", { host: "127.0.0.1" });
 // [myapp-db] 2000-01-01T00:00:00.000Z (db) DEBUG: connected { host: "127.0.0.1" }
+app.format("value=%s").info("ok", { host: "127.0.0.1" });
+// [myapp] 2000-01-01T00:00:00.000Z (app) INFO: value=ok { host: "127.0.0.1" }
 
 setDefaultConfig({
   level: null,
@@ -186,6 +188,17 @@ type LoggerConfigPatch = {
 };
 // Active read-side overrides. Returned values never contain null.
 type LoggerConfigOverrides = Partial<LoggerConfig>;
+type FormattedLogger = {
+  trace(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+};
+type Logger = FormattedLogger & {
+  readonly name: string;
+  format(template: string): FormattedLogger;
+};
 ```
 
 API signatures:
@@ -220,6 +233,7 @@ Logger usage:
 const log: Logger = getLogger("app");
 log.info("started");
 log.error("details", { code: "E_CONN" });
+log.format("user=%s status=%d").error("alice", 500);
 ```
 
 ## Console Notes
