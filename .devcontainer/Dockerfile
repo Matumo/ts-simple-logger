@@ -47,7 +47,7 @@ RUN apt-get update && \
 
 # pnpm
 RUN corepack enable && \
-    corepack prepare pnpm@10.32.1 --activate && \
+    corepack prepare pnpm@10.33.0 --activate && \
     pnpm completion bash > ~/completion-for-pnpm.bash && \
     echo 'source ~/completion-for-pnpm.bash' >> ~/.bashrc
 
