@@ -70,12 +70,45 @@
 
       const logger = getLogger(`${kind}-demo`)
       const secondaryLogger = getLogger(`${kind}-network`)
+      const retainedDefaultLevelLogger = getLogger(`${kind}-retained-default-level`)
+      const retainedDefaultLevelFormatted = retainedDefaultLevelLogger.format("retained=%d")
+      const retainedOverrideLevelLogger = getLogger(`${kind}-retained-override-level`)
+      const retainedOverrideLevelFormatted = retainedOverrideLevelLogger.format("retained=%d")
+      const retainedDefaultPrefixLogger = getLogger(`${kind}-retained-default-prefix`)
+      const retainedDefaultPrefixFormatted = retainedDefaultPrefixLogger.format("retained=%s")
+      const retainedOverridePrefixLogger = getLogger(`${kind}-retained-override-prefix`)
+      const retainedOverridePrefixFormatted = retainedOverridePrefixLogger.format("retained=%s")
+      const retainedOverrideFormatLogger = getLogger(`${kind}-retained-override-format`)
+      const retainedOverrideFormatFormatted = retainedOverrideFormatLogger.format("retained-format=%s")
+      const staleFormatLogger = getLogger(`${kind}-stale-format`)
+      const oldFormat = staleFormatLogger.format
+      requireFunction(logger?.format, "logger.format")
 
       setLoggerConfig(`${kind}-network`, { level: "warn" })
 
       logger.trace(`${kind} trace`)
       logger.debug(`${kind} debug`)
       logger.info(`${kind} info`)
+      logger.format("value=%s").info("ok", { kind })
+      setDefaultConfig({ level: "error" })
+      retainedDefaultLevelFormatted.warn(10)
+      retainedDefaultLevelFormatted.error(20)
+      setDefaultConfig({ level: "trace" })
+      setLoggerLevel(`${kind}-retained-override-level`, "error")
+      retainedOverrideLevelFormatted.warn(30)
+      retainedOverrideLevelFormatted.error(40)
+      setDefaultConfig({ prefixEnabled: false })
+      retainedDefaultPrefixFormatted.info("default")
+      oldFormat("stale=%d").info(1)
+      staleFormatLogger.format("stale=%d").info(2)
+      setDefaultConfig({ prefixEnabled: true })
+      setLoggerConfig(`${kind}-retained-override-prefix`, { prefixEnabled: false })
+      retainedOverridePrefixFormatted.info("local")
+      setLoggerConfig(`${kind}-retained-override-format`, {
+        prefixFormat: `[retained-format][%app-name][%loggerName][%logLevel]`,
+        placeholders: { "%app-name": "format-app" }
+      })
+      retainedOverrideFormatFormatted.info("updated")
       secondaryLogger.info(`${kind} network info (hidden because level=warn)`)
       secondaryLogger.warn(`${kind} network warning`)
       secondaryLogger.error(`${kind} network error`, { status: 500 })
@@ -89,6 +122,12 @@
       })
       const defaultMergeLogger = getLogger(`${kind}-default-merge`)
       defaultMergeLogger.info(`${kind} default placeholder merge works`)
+      setDefaultConfig({
+        placeholders: {
+          "%phase": null
+        }
+      })
+      defaultMergeLogger.info(`${kind} default placeholder delete works`)
       setLoggerConfig(`${kind}-logger-merge`, {
         placeholders: {
           "%service": `service-${kind}`,
@@ -103,6 +142,12 @@
       })
       const loggerMergeLogger = getLogger(`${kind}-logger-merge`)
       loggerMergeLogger.info(`${kind} logger placeholder merge works`)
+      setLoggerConfig(`${kind}-logger-merge`, {
+        placeholders: {
+          "%service": null
+        }
+      })
+      loggerMergeLogger.info(`${kind} logger placeholder delete works`)
       setDefaultConfig({
         level: "trace",
         prefixEnabled: true,
@@ -191,6 +236,47 @@
       }
 
       validationLogger.info(`${kind} validation still works`)
+
+      setDefaultConfig({
+        level: "error",
+        prefixEnabled: false,
+        prefixFormat: `[${kind}-default-reset][%app-name][%loggerName] %logLevel:`,
+        placeholders: { "%app-name": `reset-${kind}` }
+      })
+      setDefaultConfig({
+        level: null,
+        prefixEnabled: null,
+        prefixFormat: null,
+        placeholders: null
+      })
+      const defaultResetLogger = getLogger(`${kind}-default-reset`)
+      defaultResetLogger.info(`${kind} default reset works`)
+
+      setDefaultConfig({
+        level: "trace",
+        prefixEnabled: true,
+        prefixFormat: `[${kind}][%app-name][%loggerName] %logLevel: [%tick]`,
+        placeholders: {
+          "%app-name": `browser-${kind}`,
+          "%tick": () => `${kind}-${++tick}`
+        }
+      })
+      setLoggerConfig(`${kind}-validation`, {
+        level: "error",
+        prefixEnabled: false,
+        prefixFormat: `[${kind}-validation-reset][%app-name][%loggerName] %logLevel:`,
+        placeholders: {
+          "%app-name": `override-${kind}`,
+          "%phase": "logger-reset"
+        }
+      })
+      setLoggerConfig(`${kind}-validation`, {
+        level: null,
+        prefixEnabled: null,
+        prefixFormat: null,
+        placeholders: null
+      })
+      validationLogger.info(`${kind} logger reset works`)
 
       const foreignLogger = getLogger(`${kind}-foreign-realm`)
       let cleanupForeignConfig = () => {}

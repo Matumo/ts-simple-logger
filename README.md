@@ -86,6 +86,18 @@ app.info("started");
 // [myapp] 2000-01-01T00:00:00.000Z (app) INFO: started
 db.debug("connected", { host: "127.0.0.1" });
 // [myapp-db] 2000-01-01T00:00:00.000Z (db) DEBUG: connected { host: "127.0.0.1" }
+app.format("value=%s").info("ok", { host: "127.0.0.1" });
+// [myapp] 2000-01-01T00:00:00.000Z (app) INFO: value=ok { host: "127.0.0.1" }
+
+setDefaultConfig({
+  level: null,
+  placeholders: { "%time": null },
+});
+
+setLoggerConfig("db", {
+  level: null,
+  placeholders: null,
+});
 ```
 
 
@@ -115,6 +127,17 @@ Placeholders:
 - Placeholder functions are evaluated at log time
 - Default and per-logger placeholder updates are merged by key
 - Effective per-logger placeholders merge defaults and overrides, with per-logger values taking precedence on key conflicts
+
+`null` semantics in config patches:
+
+- `level`, `prefixEnabled`, `prefixFormat`: reset to the next fallback
+  - `setDefaultConfig(...)`: reset to library defaults
+  - `setLoggerConfig(...)`: clear that logger's override
+- `placeholders: null`
+  - `setDefaultConfig(...)`: reset the full default placeholder map to library defaults
+  - `setLoggerConfig(...)`: clear the full placeholder override map for that logger
+- `placeholders: { "%app": null }`: delete only that placeholder key from the target map
+- `getLoggerOverrides()` never returns `null`; it only returns overrides that are still active
 
 Prefix behavior:
 
@@ -156,8 +179,26 @@ type LoggerConfig = {
   prefixFormat: string;
   placeholders: Placeholders;
 };
-// Partial update for defaults or per-logger overrides.
-type LoggerConfigPatch = Partial<LoggerConfig>;
+// Partial update accepted by setters. null means reset/delete.
+type LoggerConfigPatch = {
+  level?: LogLevel | null;
+  prefixEnabled?: boolean | null;
+  prefixFormat?: string | null;
+  placeholders?: Record<string, PlaceholderValue | null> | null;
+};
+// Active read-side overrides. Returned values never contain null.
+type LoggerConfigOverrides = Partial<LoggerConfig>;
+type FormattedLogger = {
+  trace(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+};
+type Logger = FormattedLogger & {
+  readonly name: string;
+  format(template: string): FormattedLogger;
+};
 ```
 
 API signatures:
@@ -178,8 +219,8 @@ setLoggerLevel(name: string, level: LogLevel): void;
 
 // Get current defaults.
 getDefaultConfig(): Readonly<LoggerConfig>;
-// Get per-logger overrides for a logger.
-getLoggerOverrides(name: string): Readonly<LoggerConfigPatch>;
+// Get active per-logger overrides for a logger. Returned values never contain null.
+getLoggerOverrides(name: string): Readonly<LoggerConfigOverrides>;
 // Get resolved config (defaults + overrides) for a logger.
 getEffectiveLoggerConfig(name: string): Readonly<LoggerConfig>;
 // Get library defaults (initial baseline).
@@ -192,6 +233,7 @@ Logger usage:
 const log: Logger = getLogger("app");
 log.info("started");
 log.error("details", { code: "E_CONN" });
+log.format("user=%s status=%d").error("alice", 500);
 ```
 
 ## Console Notes

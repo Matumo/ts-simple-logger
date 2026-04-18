@@ -1,29 +1,45 @@
 version: 2
 updates:
+  # devcontainers
   - package-ecosystem: "devcontainers"
     directory: "/"
     target-branch: "develop"
     schedule:
-      interval: daily
-  - package-ecosystem: docker
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  # docker
+  - package-ecosystem: "docker"
     directory: "/.devcontainer"
+    target-branch: "develop"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+  # npm
   - package-ecosystem: "npm"
     directory: "/"
     target-branch: "develop"
     schedule:
-      interval: daily
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-major-days: 28
+      semver-minor-days: 14
+      semver-patch-days: 7
     groups:
       npm-all:
         patterns:
           - "*" # 全ての依存関係
+  # github-actions
   - package-ecosystem: "github-actions"
     directories:
       - "/.github/**/*"
     target-branch: "develop"
     schedule:
-      interval: daily
+      interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
       github-actions-all:
         patterns:

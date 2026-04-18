@@ -10,6 +10,7 @@ const testStateKey = "__TS_SIMPLE_LOGGER_BROWSER_TEST__";
 
 type BrowserLog = {
   method: string;
+  args: string[];
   text: string;
 };
 
@@ -17,14 +18,15 @@ type ScenarioKind = "module" | "iife";
 
 async function installLogCapture(page: Page) {
   await page.addInitScript(() => {
-    const logs: { method: string; text: string }[] = [];
+    const logs: { method: string; args: string[]; text: string }[] = [];
     const methods = ["log", "info", "warn", "error", "debug", "trace"] as const;
 
     for (const method of methods) {
       if (typeof console[method] !== "function") continue;
 
       console[method] = (...args: unknown[]) => {
-        logs.push({ method, text: args.map(String).join(" ") });
+        const stringArgs = args.map(String);
+        logs.push({ method, args: stringArgs, text: stringArgs.join(" ") });
       };
     }
 
@@ -57,14 +59,80 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes(`[${kind}][browser-${kind}][${kind}-network] WARN: [${kind}-`))).toBeTruthy();
   expect(
     logs.some((entry) =>
+      entry.method === "info" &&
+      entry.args[0] === "%s value=%s" &&
+      entry.args[1].includes(`[${kind}][browser-${kind}][${kind}-demo] INFO: [${kind}-`) &&
+      entry.args[2] === "ok" &&
+      entry.args[3] === "[object Object]"
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "warn" && entry.args[0] === "%s retained=%d" && entry.args[2] === "10")
+  ).toBeFalsy();
+  expect(
+    logs.some((entry) =>
+      entry.method === "error" &&
+      entry.args[0] === "%s retained=%d" &&
+      entry.args[1].includes(`[${kind}][browser-${kind}][${kind}-retained-default-level] ERROR: [${kind}-`) &&
+      entry.args[2] === "20"
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "warn" && entry.args[0] === "%s retained=%d" && entry.args[2] === "30")
+  ).toBeFalsy();
+  expect(
+    logs.some((entry) =>
+      entry.method === "error" &&
+      entry.args[0] === "%s retained=%d" &&
+      entry.args[1].includes(`[${kind}][browser-${kind}][${kind}-retained-override-level] ERROR: [${kind}-`) &&
+      entry.args[2] === "40"
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "info" && entry.args[0] === "retained=%s" && entry.args[1] === "default")
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "info" && entry.args[0] === "stale=%d" && entry.args[1] === "1")
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "info" && entry.args[0] === "stale=%d" && entry.args[1] === "2")
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) => entry.method === "info" && entry.args[0] === "%s stale=%d" && (entry.args[2] === "1" || entry.args[2] === "2"))
+  ).toBeFalsy();
+  expect(
+    logs.some((entry) => entry.method === "info" && entry.args[0] === "retained=%s" && entry.args[1] === "local")
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.method === "info" &&
+      entry.args[0] === "%s retained-format=%s" &&
+      entry.args[1] === `[retained-format][format-app][${kind}-retained-override-format][INFO]` &&
+      entry.args[2] === "updated"
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
       entry.text.includes(`[${kind}-default-merge][merged-${kind}][default-merge][${kind}-`) &&
       entry.text.includes(`[${kind}-default-merge] INFO: ${kind} default placeholder merge works`)
     )
   ).toBeTruthy();
   expect(
     logs.some((entry) =>
+      entry.text.includes(`[${kind}-default-merge][merged-${kind}][%phase][${kind}-`) &&
+      entry.text.includes(`[${kind}-default-merge] INFO: ${kind} default placeholder delete works`)
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
       entry.text.includes(`[${kind}-logger-merge][service-${kind}-v2][warmup][${kind}-`) &&
       entry.text.includes(`[${kind}-logger-merge] INFO: ${kind} logger placeholder merge works`)
+    )
+  ).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}-logger-merge][%service][warmup][${kind}-`) &&
+      entry.text.includes(`[${kind}-logger-merge] INFO: ${kind} logger placeholder delete works`)
     )
   ).toBeTruthy();
   expect(logs.some((entry) => entry.text === `${kind} edge no prefix`)).toBeTruthy();
@@ -81,6 +149,13 @@ function expectScenarioLogs(kind: ScenarioKind, logs: BrowserLog[]) {
   expect(logs.some((entry) => entry.text.includes('caught reserved placeholder key: reserved placeholder key: "%loggerName"'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes('caught invalid placeholder value: invalid placeholder value for "%bad": 123'))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-validation][${kind}][${kind}-validation] INFO: ${kind} validation still works`))).toBeTruthy();
+  expect(logs.some((entry) => entry.text.includes(`(${kind}-default-reset) INFO: ${kind} default reset works`))).toBeTruthy();
+  expect(
+    logs.some((entry) =>
+      entry.text.includes(`[${kind}][browser-${kind}][${kind}-validation] INFO: [${kind}-`) &&
+      entry.text.includes(`${kind} logger reset works`)
+    )
+  ).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes(`[${kind}-foreign][iframe][${kind}-foreign-realm] INFO: ${kind} foreign realm still works`))).toBeTruthy();
   expect(logs.some((entry) => entry.text.includes("caught foreign realm config:"))).toBeFalsy();
   expect(logs.some((entry) => entry.text.includes(`caught invalid config: invalid log level: "invalid_${kind}_level"`))).toBeTruthy();
