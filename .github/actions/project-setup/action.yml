@@ -13,10 +13,10 @@ runs:
   using: composite
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v6.3.0
       with:
         node-version: ${{ inputs.node-version }}
-    - uses: pnpm/action-setup@v6
+    - uses: pnpm/action-setup@v6.0.1
       name: Install pnpm
     - name: Setup pnpm cache
       id: pnpm_store
