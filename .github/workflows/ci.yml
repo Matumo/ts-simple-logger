@@ -32,7 +32,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
@@ -59,7 +59,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
@@ -75,7 +75,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
@@ -100,7 +100,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
@@ -120,7 +120,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
@@ -138,7 +138,7 @@ jobs:
       contents: read
     steps:
       # Setup
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Prepare environment
         uses: ./.github/actions/project-setup
         with:
