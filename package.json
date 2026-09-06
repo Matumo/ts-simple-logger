@@ -54,10 +54,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^1.2.0",
+    "@eslint/json": "^2.0.0",
     "@playwright/test": "^1.58.2",
-    "@types/chrome": "^0.1.38",
-    "@types/node": "^25.5.0",
+    "@types/chrome": "^0.2.0",
+    "@types/node": "^26.0.0",
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
